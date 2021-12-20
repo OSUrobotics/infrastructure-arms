@@ -1,0 +1,28 @@
+<launch>
+
+<arg name="data" default=""/>
+<param name="robot_description" command="$(find xacro)/xacro.py $(find kinova_description)/urdf/drawer_model.xacro" />
+
+<!-- Convert xacro and put on parameter server -->
+<param name="robot_description" command="$(find xacro)/xacro.py $(find kinova_description)/urdf/drawer_model.xacro" />
+
+<!-- Spawn a robot into Gazebo -->
+<!-- <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param robot_description_drawer -urdf -model robot" /> -->
+
+<!--source list is name of rostopic to retrieve joint angles from and updated the robotModel (drawer_updater.py provides the drawer_distance topic)-->
+<node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
+    <rosparam param="source_list">["drawer_distance"]</rosparam>
+</node>
+<!-- <node name="joint_state_publisher" pkg="joint_state_publisher_gui" type="joint_state_publisher_gui" /> -->
+<node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true" output="screen" />
+<include file="$(find j2s7s300_moveit_config)/launch/moveit_rviz.launch">
+    <arg name="config" value="true"/>
+    <arg name="debug" value="false"/>
+</include>
+
+<node pkg="kinova_description" name="drawer_updater" type="drawer_updater.py" args="$(arg data)" output="screen"/>
+
+<!-- graph testing -->
+<node pkg="kinova_description" name="data_plotter" type="data_plotter.py" output="screen"/>
+<node pkg="kinova_description" name="data_intermediary" type="data_intermediary.py" output="screen"/>
+</launch>
