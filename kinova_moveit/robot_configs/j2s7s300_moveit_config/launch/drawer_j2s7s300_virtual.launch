@@ -1,0 +1,15 @@
+<launch>
+    <!-- For multiple robot spawns -->
+    
+    <include file="$(find j2s7s300_moveit_config)/launch/j2s7s300_virtual_robot_demo.launch" />
+    <include file="$(find kinova_description)/launch/drawer_spawn.launch">
+        <arg name="data" value="/home/sogol/Documents/drawer_tests/real_kinova_tests/drawer_trial10.csv"/>
+    </include>
+    <!-- <include file="$(find j2s7s300_moveit_config)/launch/moveit_rviz.launch">
+        <arg name="config" value="true"/>
+        <arg name="debug" value="false"/>
+    </include> -->
+    <!-- <node name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false" output="screen" /> -->
+    <node name="rviz" pkg="rviz" type="rviz" respawn="false" output="screen" args="-d $(find j2s7s300_moveit_config)/launch/moveit.rviz"/>
+
+</launch>

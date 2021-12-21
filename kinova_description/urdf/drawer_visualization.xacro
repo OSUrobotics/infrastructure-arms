@@ -64,15 +64,6 @@
           rgba="0.75294 0.75294 0.75294 1" />
       </material>
     </visual>
-    <collision>
-      <origin
-        xyz="0 0 0"
-        rpy="0 0 0" />
-      <geometry>
-        <mesh
-          filename="file://$(find kinova_description)/meshes/drawer_Link.STL" />
-      </geometry>
-    </collision>
   </link>
 
   <link
@@ -102,15 +93,6 @@
           rgba="1 1 1 1" />
       </material>
     </visual>
-    <collision>
-      <origin
-        xyz="0 0 0"
-        rpy="0 0 0" />
-      <geometry>
-        <mesh
-          filename="file://$(find kinova_description)/meshes/frame_link.STL" scale="1 1 1"/>
-      </geometry>
-    </collision>
   </link>
 
   <joint name="connect_drawer_to_parent" type="fixed">

@@ -20,7 +20,6 @@
 
 
   <xacro:include filename="$(find kinova_description)/urdf/j2s7s300.xacro"/>
-<!--  <xacro:include filename="$(find kinova_description)/urdf/door.xacro"/>-->
 
   <link name="root" />
 

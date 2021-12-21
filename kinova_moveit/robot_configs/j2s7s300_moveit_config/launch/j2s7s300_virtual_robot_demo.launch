@@ -18,6 +18,7 @@
   </include>
 
   <!-- If needed, broadcast static tf for robot root -->
+  <node name="my_stp" pkg="tf" type="static_transform_publisher" args="1 0 0 0 0 0 world root 100"/>
   
 
   <!-- We do not have a robot connected, so publish fake joint states -->
@@ -30,7 +31,7 @@
   </node>
 
   <!-- Given the published joint states, publish tf for the robot links -->
-  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true" output="screen" />
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true" output="screen"/>
 
   <!-- Run the main MoveIt executable without trajectory execution (we do not have controllers configured by default) -->
   <include file="$(find j2s7s300_moveit_config)/launch/move_group.launch">
@@ -41,14 +42,13 @@
   </include>
 
   <!-- Run Rviz and load the default config to see the state of the move_group node -->
-  <include file="$(find j2s7s300_moveit_config)/launch/moveit_rviz.launch">
+  <!-- <include file="$(find j2s7s300_moveit_config)/launch/moveit_rviz.launch">
     <arg name="config" value="true"/>
     <arg name="debug" value="$(arg debug)"/>
-  </include>
+  </include> -->
 
   <!-- If database loading was enabled, start mongodb as well -->
   <include file="$(find j2s7s300_moveit_config)/launch/default_warehouse_db.launch" if="$(arg db)">
     <arg name="moveit_warehouse_database_path" value="$(arg db_path)"/>
   </include>
-
 </launch>

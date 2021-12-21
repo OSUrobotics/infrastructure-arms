@@ -211,6 +211,6 @@ include_directories(
 # catkin_add_nosetests(test)
 
 
-add_executable(single_stage_as src/single_stage_as.cpp)
-target_link_libraries(single_stage_as ${catkin_LIBRARIES})
-add_dependencies(single_stage_as ${catkin_EXPORTED_TARGETS})
+#add_executable(single_stage_as src/single_stage_as.cpp)
+#target_link_libraries(single_stage_as ${catkin_LIBRARIES})
+#add_dependencies(single_stage_as ${catkin_EXPORTED_TARGETS})
