@@ -12,7 +12,18 @@
     xmlns:renderable="http://playerstage.sourceforge.net/gazebo/xmlschema/#renderable"
     xmlns:physics="http://playerstage.sourceforge.net/gazebo/xmlschema/#physics"
 	xmlns:xacro="http://www.ros.org/wiki/xacro" name="drawer_model">
-  <xacro:include filename="$(find kinova_description)/urdf/drawer.xacro"/>
+
+  <!-- <xacro:include filename="$(find kinova_description)/urdf/drawer.xacro"/> -->
+  <!-- Don't see a reason to ever need collisin boxes for the drawer. If do, swap xacro with drawer.xacro -->
+
+  <xacro:arg name="position" default="'0 0 0'" /> 
+  <xacro:property name="position" value="$(arg position)" />
+
+  <xacro:arg name="rotation" default="'0 0 0'" /> 
+  <xacro:property name="rotation" value="$(arg rotation)" />
+
+  <xacro:include filename="$(find kinova_description)/urdf/drawer_visualization.xacro" />
+
 
   <link name="root" />
 
@@ -22,7 +33,12 @@
   <drawer parent="world"/>
   <joint name="connect_root_and_world" type="fixed">
     <child link="root" />
-    <parent link="world" />
-    <origin xyz="-0.2 0 0" rpy="0 0 0" />
+    <parent link="world" />\
+    <origin xyz="0 0 0" rpy="0 0 0" />
   </joint>
+
+  <!-- <xacro:property name="robot_root" value="root" />
+
+  <xacro:drawer  parent="${robot_root}"/> -->
+
 </robot>

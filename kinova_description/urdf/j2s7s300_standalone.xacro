@@ -26,20 +26,14 @@
   <!-- for gazebo -->
   <link name="world"/>
 
-<!--  <door parent="world"/>-->
-<!--  <link name="cabinet"/>-->
   <joint name="connect_root_and_world" type="fixed">
     <child link="root" />
     <parent link="world" />
-<!--    <origin xyz="-0.2 0.5 0" rpy="0 0 0" /> old yaw: 33.141593  -->
-      <origin xyz="0 0 0.855" rpy="0 0 1.570796" />
+    <origin xyz="1 0 0" rpy="0 0 0" />
+      <!-- <origin xyz="0 0 0.855" rpy="0 0 1.570796" /> -->
+      <!-- <origin xyz="0 0 0" rpy="0 0 0" /> -->
   </joint>
 
-  <!--  <joint name="door_to_root" type="fixed">-->
-<!--    <child link="cabinet" />-->
-<!--    <parent link="root" />-->
-<!--    <origin xyz="0 0 0" rpy="0 0 0" />-->
-<!--  </joint>-->
 
 
   <xacro:property name="robot_root" value="root" />

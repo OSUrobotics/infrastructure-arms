@@ -12,8 +12,10 @@
     xmlns:renderable="http://playerstage.sourceforge.net/gazebo/xmlschema/#renderable"
     xmlns:physics="http://playerstage.sourceforge.net/gazebo/xmlschema/#physics"
 	xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:macro name="drawer" params="parent position:=^ rotation:=^">
+
   <xacro:include filename="$(find kinova_description)/urdf/drawer.gazebo" />
-  <xacro:macro name="drawer" params="parent">
 
   <joint
     name="drawer_slider"
@@ -98,9 +100,9 @@
   <joint name="connect_drawer_to_parent" type="fixed">
     <child link="frame_link" />
     <parent link="${parent}"/>
-<!--    <origin xyz="0 0 0" rpy="0 0 0" /> base z: 0.7425 -->
-
-    <origin xyz="0.5 0 1.2025" rpy="-1.5708 -3.1416 -1.5708" />
+    <!-- base z: 0.7425 -->
+    <origin xyz="${position}" rpy="${rotation}" />
+    <!-- <origin xyz="0.5 0 1.2025" rpy="-1.5708 -3.1416 -1.5708" /> -->
   </joint>
 
   <transmission name="tran1">

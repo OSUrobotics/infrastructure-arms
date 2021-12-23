@@ -1,4 +1,6 @@
 <launch>
+<!-- virtual visualization of j2s7s300 arm (has additional stp node and doesn't launch rviz) -->
+
   <param name="robot_type" value="j2s7s300" />
   <param name="robot_connected" value="false" />
 	<param name="/pick_place_demo/arm/solve_type" value="Manipulation2" />
@@ -17,6 +19,9 @@
     <arg name="load_robot_description" value="true"/>
   </include>
 
+  <!-- broadcast static tf for robot root -->
+  <node name="world_stp" pkg="tf" type="static_transform_publisher" args="1 0 0 0 0 0 world root 100"/>
+
   <!-- We do not have a robot connected, so publish fake joint states -->
   <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
     <param name="/use_gui" value="false"/>
@@ -34,12 +39,6 @@
     <arg name="allow_trajectory_execution" value="true"/>
     <arg name="fake_execution" value="true"/>
     <arg name="info" value="true"/>
-    <arg name="debug" value="$(arg debug)"/>
-  </include>
-
-  <!-- Run Rviz and load the default config to see the state of the move_group node -->
-  <include file="$(find j2s7s300_moveit_config)/launch/moveit_rviz.launch">
-    <arg name="config" value="true"/>
     <arg name="debug" value="$(arg debug)"/>
   </include>
 

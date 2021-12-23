@@ -116,9 +116,9 @@
   <joint name="connect_drawer_to_parent" type="fixed">
     <child link="frame_link" />
     <parent link="${parent}"/>
-<!--    <origin xyz="0 0 0" rpy="0 0 0" /> base z: 0.7425 -->
-
-    <origin xyz="0.5 0 1.2025" rpy="-1.5708 -3.1416 -1.5708" />
+    <!-- base z: 0.7425 -->
+   <origin xyz="0 0 0" rpy="-1.5708 -3.1416 -1.5708" /> 
+    <!-- <origin xyz="0.5 0 1.2025" rpy="-1.5708 -3.1416 -1.5708" /> -->
   </joint>
 
   <transmission name="tran1">

@@ -1,14 +1,19 @@
 <launch>
-<!-- Repurpose this launch file for just launching data manipulation nodes? -->
+<!-- Repurpose this launch file for just launching data manipulation nodes? 
+     currently launches drawer robot and data manipulation nodes
+-->
+
 <arg name="data" default=""/>
+<arg name="position" default="'0 0 0'"/>
+<arg name="rotation" default="'0 0 0'"/>
 <group ns="drawer">
 <param name="tf_prefix" value="drawer" />
 <!-- Convert xacro and put on parameter server -->
-<param name="robot_description" command="$(find xacro)/xacro.py $(find kinova_description)/urdf/drawer_model.xacro" />
+<param name="robot_description" command="$(find xacro)/xacro.py '$(find kinova_description)/urdf/drawer_model.xacro' position:=$(arg position) rotation:=$(arg rotation)"/>
 
-<node name="my_stp" pkg="tf" type="static_transform_publisher" args="-1 0 0 0 0 0 world drawer/world 100"/>
+<node name="world_stp" pkg="tf" type="static_transform_publisher" args="-1 0 0 0 0 0 world drawer/world 100"/>
 
-<!-- Spawn a robot into Gazebo (do not uncomment) -->
+<!-- Spawn a robot into Gazebo -->
 <!-- <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param robot_description_drawer -urdf -model robot" /> -->
 
 <!--source list is name of rostopic to retrieve joint angles from and updated the robotModel (drawer_updater.py provides the drawer_distance topic)-->
@@ -18,19 +23,11 @@
 
 <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true" output="screen"  />
 
-<!-- if don't want to use kinova moveit_rviz config: (add more params to start with proper tf prefix and fixed frame) -->
-<!-- <node name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false" output="screen" /> -->
-
-<!-- <include file="$(find j2s7s300_moveit_config)/launch/moveit_rviz.launch">
-    <arg name="config" value="true"/>
-    <arg name="debug" value="false"/>
-</include> -->
-
 <node pkg="kinova_description" name="drawer_updater" type="drawer_updater.py" args="$(arg data)" output="screen"/>
 
 <!-- graph testing -->
 <node pkg="kinova_description" name="data_plotter" type="data_plotter.py" output="screen"/>
 <node pkg="kinova_description" name="data_intermediary" type="data_intermediary.py" output="screen"/>
 </group>
-<!-- <remap from="drawer_tf/root" to="root" /> -->
+
 </launch>
