@@ -18,15 +18,10 @@ class ExampleArmController():
 
 	
 		self.start_arm.publish_feedback(StageFeedback(status="EXAMPLE: GRABBING OBJECT"))
-		###do any arm calls or work here
-		# can have path planner in same directory as example_arm_controller.py
-		#subprocess.call(["/home/sogol/kinova_Ws/src/kinova-ros/kinova_scripts/src/general_path_planner_kinova.py", "0", "0", "/home/sogol/kinova_Ws/src/kinova-ros/kinova_scripts/src/joint_angles/drawer_path.csv"])
-		#subprocess.call(["/home/testbed-tower/kinova_ws/src/kinova-ros/kinova_scripts/src/kinova_infrastructure_planning/kinova_scripts/src/general_path_planner_kinova.py", "0", "0", "/home/testbed-tower/kinova_ws/src/kinova-ros/kinova_scripts/src/kinova_infrastructure_planning/kinova_scripts/src/joint_angles/better_testbed.csv"])
-		#pseudo timer
-		user_in = raw_input("press key")
-		time.sleep(1)
+		
+		### do any arm calls or work here ###
+		
 		self.start_arm.set_succeeded(StageResult(result = 0), text="SUCCESS")
-
 
 
 if __name__ == '__main__':
