@@ -17,7 +17,7 @@
 
   <xacro:include filename="$(find kinova_description)/urdf/drawer.gazebo" />
 
-  <joint
+  <!-- <joint
     name="drawer_slider"
     type="prismatic">
     <origin
@@ -95,7 +95,91 @@
           rgba="1 1 1 1" />
       </material>
     </visual>
+  </link> -->
+
+<link
+    name="frame_link">
+    <inertial>
+      <origin
+        xyz="0.2286 -0.29123 0.31673"
+        rpy="0 0 0" />
+      <mass
+        value="16.831" />
+      <inertia
+        ixx="0.33129"
+        ixy="2.8783E-19"
+        ixz="-1.2423E-17"
+        iyy="0.33426"
+        iyz="-3.1513E-17"
+        izz="0.19577" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="file://$(find kinova_description)/meshes/frame_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
   </link>
+  <link
+    name="drawer_link">
+    <inertial>
+      <origin
+        xyz="0.23061 -0.18075 0.10588"
+        rpy="0 0 0" />
+      <mass
+        value="3.0911" />
+      <inertia
+        ixx="0.011287"
+        ixy="-1.0206E-06"
+        ixz="1.6861E-09"
+        iyy="0.024774"
+        iyz="1.5582E-07"
+        izz="0.0194" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="file://$(find kinova_description)/meshes/drawer_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.75294 0.75294 0.75294 1" />
+      </material>
+    </visual>
+  </link>
+  <joint
+    name="drawer_slider"
+    type="prismatic">
+    <origin
+      xyz="0.41751 -0.23823 0.0889"
+      rpy="-1.5708 -1.5708 0" />
+    <parent
+      link="frame_link" />
+    <child
+      link="drawer_link" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="-0.2"
+      upper="0"
+      effort="1000"
+      velocity="2.5" />
+    <dynamics
+      friction="0.01" />
+  </joint>
+
 
   <joint name="connect_drawer_to_parent" type="fixed">
     <child link="frame_link" />
