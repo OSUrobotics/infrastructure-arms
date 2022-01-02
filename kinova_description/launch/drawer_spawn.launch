@@ -9,7 +9,9 @@
 <group ns="drawer">
 <param name="tf_prefix" value="drawer" />
 <!-- Convert xacro and put on parameter server -->
-<param name="robot_description" command="$(find xacro)/xacro.py '$(find kinova_description)/urdf/drawer_model.xacro' position:=$(arg position) rotation:=$(arg rotation)"/>
+<!-- <param name="robot_description" command="$(find xacro)/xacro.py '$(find kinova_description)/urdf/drawer_model.xacro' position:=$(arg position) rotation:=$(arg rotation)"/> -->
+<param name="robot_description" command="$(find xacro)/xacro.py '$(find infrastructure_raspi)/urdf/drawer_model.xacro' position:=$(arg position) rotation:=$(arg rotation)"/>
+
 
 <node name="world_stp" pkg="tf" type="static_transform_publisher" args="-1 0 0 0 0 0 world drawer/world 100"/>
 
