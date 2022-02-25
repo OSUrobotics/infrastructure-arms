@@ -15,7 +15,6 @@ class ExampleArmController():
 		
  
 	def start_arm_sequence_callback(self, goal):
-
 	
 		self.start_arm.publish_feedback(StageFeedback(status="EXAMPLE: GRABBING OBJECT"))
 		###do any arm calls or work here
