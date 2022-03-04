@@ -1,9 +1,13 @@
 # infrastructure-arms
 ## Overview
-### d
-Contains ROS package (arm_control) for controlling the Kionva gen2.
+### arm_control:
+Used to control the Kinova gen2 with the infrastructure system. Currently used as a stop while the script for controlling the Kinova gen2 is ran seperately.
 
-## infrastructure_arms Package Interface
+### kinova_\*:
+Modified packages
+
+
+## arm_control Package Interface
 ### Action Servers:
 - __start_arm_sequence__
   - Action server that the _User Arm Control_ stage action client sends a goal to.
