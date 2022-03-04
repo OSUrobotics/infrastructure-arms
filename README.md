@@ -14,15 +14,15 @@ Modified source code and configuration packages for the Kinova Jaco2. Modificati
   - Launches all launch files related to Data visualization.
   - To run:
     ```console
-    roslaunch j2s7s300_moveit_config drawer_j2s7s300_virtual.launch
+    roslaunch j2s7s300_moveit_config drawer_j2s7s300_virtual.launch data:=<string> position:='x y z' rotation:='r p y'
     ```
   - Launch parameters:
     ```
     data:=<string> (path name for CSV file containing Drawer trial information)
 
-    position:='x y z' (Position of Drawer model in RVIZ, relative to the origin)
+    position:='x y z' (Position of Drawer model (in meters) in RVIZ, relative to the origin)
   
-    rotation:='r p y' (Rotation of Drawer model in RVIZ, relative to the origin)
+    rotation:='r p y' (Rotation of Drawer model (in radians) in RVIZ, relative to the origin)
     ```
 - [__j2s7s300_virtual_robot_demo_visualization.launch__](https://github.com/OSUrobotics/infrastructure-arms/blob/Kinova_j2s7s300/kinova_moveit/robot_configs/j2s7s300_moveit_config/launch/j2s7s300_virtual_robot_demo_visualization.launch)
   - Launches a Kinova Jaco2 robot model that works with multiple robot models in RVIZ
