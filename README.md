@@ -1,6 +1,7 @@
 # infrastructure-arms
 ## Overview
-Contains ROS package (arm_control) for arm control with the infrastructure system. Each branch contains setup and control for different arms. Contains ROS packages for using robotic arms with the main infrastructure control system
+### d
+Contains ROS package (arm_control) for controlling the Kionva gen2.
 
 ## infrastructure_arms Package Interface
 ### Action Servers:
