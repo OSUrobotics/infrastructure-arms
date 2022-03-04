@@ -6,6 +6,7 @@ from math import pow
 from kinova_description.srv import Data, DataResponse
 
 #publisher that publishes to /drawer_distance to control joint pose of drawer robot model
+# drawer_data service not being used in current implementation
 
 def getFPS(data):
     time_data = []
