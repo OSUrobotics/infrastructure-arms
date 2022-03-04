@@ -1,10 +1,12 @@
 # infrastructure-arms
 ## Overview
 ### arm_control package:
-Used to control the Kinova gen2 with the infrastructure system. Currently used as a stop while the script for controlling the Kinova gen2 is ran seperately.
+Used to control the Kinova Jaco2 with the infrastructure system. Currently used as a stop while the script for controlling the Kinova gen2 is ran seperately.
 
-### kinova_\*:
-Modified packages
+### kinova_\* packages:
+Modified source code and configuration packages for the Kinova Jaco2. Modifications include:
+- Increased joint velocity to 2.0 in [_joint_limits.yaml](https://github.com/OSUrobotics/infrastructure-arms/blob/Kinova_j2s7s300/kinova_moveit/robot_configs/j2s7s300_moveit_config/config/joint_limits.yaml).
+- Added files for data visualization capabilities in RVIZ
 
 
 ## arm_control Package Interface
