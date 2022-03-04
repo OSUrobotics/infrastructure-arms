@@ -34,7 +34,7 @@ Modified source code and configuration packages for the Kinova Jaco2. Modificati
   - Launches a Drawer robot model that works with multiple robot models in RVIZ
     - Note: looks for the [urdf files](https://github.com/OSUrobotics/infrastructure-raspi/tree/drawer/infrastructure_raspi/urdf) for the Drawer model inside the infrastructure_raspi package.
   - Launches [drawer_updater](https://github.com/OSUrobotics/infrastructure-arms/blob/Kinova_j2s7s300/kinova_description/src/drawer_updater.py) node that publishes to the _/drawer_distance_ topic which controls the joint pose of the Drawer robot model. Currently, drawer_updater reads from the csv file passed into the drawer_j2s7s300_virtual.launch file.
-  - __For testing:__ launches [data_intermediary](https://github.com/OSUrobotics/infrastructure-arms/blob/Kinova_j2s7s300/kinova_description/src/data_intermediary.py)  and [data_plotter](https://github.com/OSUrobotics/infrastructure-arms/blob/Kinova_j2s7s300/kinova_description/src/data_plotter.py) nodes. data_intermediary subscribes to _/drawer_distance_ and provide a service to data_plotter which creates and updates a PyQt plot for the drawer distance in real time.
+  - __For testing:__ launches [data_intermediary](https://github.com/OSUrobotics/infrastructure-arms/blob/Kinova_j2s7s300/kinova_description/src/data_intermediary.py)  and [data_plotter](https://github.com/OSUrobotics/infrastructure-arms/blob/Kinova_j2s7s300/kinova_description/src/data_plotter.py) nodes. data_intermediary subscribes to _/drawer_distance_ and provides a service for data_plotter which creates and updates a PyQt plot for the drawer distance in real time.
 
 ## arm_control Package Interface
 ### Action Servers:
