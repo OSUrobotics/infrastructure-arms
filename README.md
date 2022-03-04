@@ -1,6 +1,6 @@
 # infrastructure-arms
 ## Overview
-### arm_control:
+### arm_control package:
 Used to control the Kinova gen2 with the infrastructure system. Currently used as a stop while the script for controlling the Kinova gen2 is ran seperately.
 
 ### kinova_\*:
