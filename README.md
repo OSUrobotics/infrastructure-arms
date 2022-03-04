@@ -5,8 +5,10 @@ Used to control the Kinova Jaco2 with the infrastructure system. Currently used 
 
 ### kinova_\* packages:
 Modified source code and configuration packages for the Kinova Jaco2. Modifications include:
-- Increased joint velocity to 2.0 in [_joint_limits.yaml](https://github.com/OSUrobotics/infrastructure-arms/blob/Kinova_j2s7s300/kinova_moveit/robot_configs/j2s7s300_moveit_config/config/joint_limits.yaml).
+- Increased joint velocity to 2.0 in [_joint_limits.yaml_](https://github.com/OSUrobotics/infrastructure-arms/blob/Kinova_j2s7s300/kinova_moveit/robot_configs/j2s7s300_moveit_config/config/joint_limits.yaml).
 - Added files for data visualization capabilities in RVIZ
+
+### RVIZ Data Visualization files:
 
 
 ## arm_control Package Interface
