@@ -10,18 +10,19 @@ Modified source code and configuration packages for the Kinova Jaco2. Modificati
 
 ### RVIZ Data Visualization files:
 - [__drawer_j2s7s300_virtual.launch__](https://github.com/OSUrobotics/infrastructure-arms/blob/Kinova_j2s7s300/kinova_moveit/robot_configs/j2s7s300_moveit_config/launch/drawer_j2s7s300_virtual.launch)
-  - Main launch file for launching entire Data Visualization system. 
+  - Main launch file for launching entire Data Visualization system for the Drawer.
+  - Launches all launch files related to Data visualization.
   - To run:
     ```console
     roslaunch j2s7s300_moveit_config drawer_j2s7s300_virtual.launch
     ```
   - Launch parameters:
     ```
-    data:=<string> ()
+    data:=<string> (path name for CSV file containing Drawer trial information)
 
-    position:='x y z' (name given to rosbags, csv files, and videos)
+    position:='x y z' (Position of Drawer model in RVIZ, relative to the origin)
   
-    rotation:='r p y' (activates recording for a camera connected to the main PC. Defaults to false)
+    rotation:='r p y' (Rotation of Drawer model in RVIZ, relative to the origin)
     ```
 
 ## arm_control Package Interface
