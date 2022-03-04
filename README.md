@@ -37,7 +37,7 @@ Modified source code and configuration packages for the Kinova Jaco2. Modificati
   - __For testing:__ launches [data_intermediary](https://github.com/OSUrobotics/infrastructure-arms/blob/Kinova_j2s7s300/kinova_description/src/data_intermediary.py)  and [data_plotter](https://github.com/OSUrobotics/infrastructure-arms/blob/Kinova_j2s7s300/kinova_description/src/data_plotter.py) nodes. data_intermediary subscribes to _/drawer_distance_ and provides a service for data_plotter which creates and updates a PyQt plot for the drawer distance in real time.
 
 - [__drawer_moveit_rviz.launch__](https://github.com/OSUrobotics/infrastructure-arms/blob/Kinova_j2s7s300/kinova_moveit/robot_configs/j2s7s300_moveit_config/launch/drawer_moveit_rviz.launch)
-  - Launches RVIZ window that is setup for viewing the Kinova and Drawer robot model.
+  - Launches RVIZ window that is setup for viewing the Kinova and Drawer robot models.
     - Uses the [drawer_moveit.rviz](https://github.com/OSUrobotics/infrastructure-arms/blob/Kinova_j2s7s300/kinova_moveit/robot_configs/j2s7s300_moveit_config/launch/drawer_moveit.rviz) configuration file.
 
 ## arm_control Package Interface
