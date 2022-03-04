@@ -29,7 +29,12 @@ Modified source code and configuration packages for the Kinova Jaco2. Modificati
   - Similar to j2s7s300_virtual_robot_demo.launch except for these changes:
     - Spawns a static transform publisher node that broadcasts the static tf for the robot root
     - Doesn't launch RVIZ
+  
 - [__drawer_spawn.launch__](https://github.com/OSUrobotics/infrastructure-arms/blob/Kinova_j2s7s300/kinova_description/launch/drawer_spawn.launch)
+  - Launches a Drawer robot model that works with multiple robot models in RVIZ
+    - Note: looks for the [urdf files](https://github.com/OSUrobotics/infrastructure-raspi/tree/drawer/infrastructure_raspi/urdf) for the Drawer model inside the infrastructure_raspi package.
+  - Launches [drawer_updater](https://github.com/OSUrobotics/infrastructure-arms/blob/Kinova_j2s7s300/kinova_description/src/drawer_updater.py) node that publishes to the /drawer_distance which controls the joint pose of the Drawer robot model. Currently, drawer_updater reads from the csv file passed into the drawer_j2s7s300_virtual.launch file.
+  - For testing: launches [data_intermediary](https://github.com/OSUrobotics/infrastructure-arms/blob/Kinova_j2s7s300/kinova_description/src/data_intermediary.py)  and [data_plotter](https://github.com/OSUrobotics/infrastructure-arms/blob/Kinova_j2s7s300/kinova_description/src/data_plotter.py) nodes. data_intermediary subscribes to /drawer_distance and provide a service to data_plotter which creates and updates a PyQt plot for the drawer distance in real time.
 
 ## arm_control Package Interface
 ### Action Servers:
