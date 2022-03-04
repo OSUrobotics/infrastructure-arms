@@ -9,3 +9,13 @@ Contains ROS package (arm_control) for arm control with the infrastructure syste
   - Used to signal start of arm control. Sends result once arm control has finished
 ### Services:
 - None
+### Publishers:
+- None
+### Subscribers:
+- None
+### Topics:
+- /start_arm_sequence/cancel
+- /start_arm_sequence/feedback
+- /start_arm_sequence/goal
+- /start_arm_sequence/result
+- /start_arm_sequence/status
