@@ -1,4 +1,4 @@
-# infrastructure-arms
+# infrastructure-arms Kinova Jaco2
 ## Overview
 ### arm_control package:
 Used to control the Kinova Jaco2 with the infrastructure system. Currently used as a stop while the script for controlling the Kinova gen2 is ran seperately.
