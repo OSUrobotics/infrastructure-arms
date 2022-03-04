@@ -24,6 +24,11 @@ Modified source code and configuration packages for the Kinova Jaco2. Modificati
   
     rotation:='r p y' (Rotation of Drawer model in RVIZ, relative to the origin)
     ```
+- [__j2s7s300_virtual_robot_demo_visualization.launch__](https://github.com/OSUrobotics/infrastructure-arms/blob/Kinova_j2s7s300/kinova_moveit/robot_configs/j2s7s300_moveit_config/launch/j2s7s300_virtual_robot_demo_visualization.launch)
+  - Launches a Kinova Jaco2 robot model that works with multiple robot models in RVIZ
+  - Similar to j2s7s300_virtual_robot_demo.launch except with these changes:
+    - Spawns a static transform publisher node that broadcasts the static tf for the robot root
+    - Doesn't launch RVIZ
 
 ## arm_control Package Interface
 ### Action Servers:
