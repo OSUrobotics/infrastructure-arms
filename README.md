@@ -1,5 +1,8 @@
 # infrastructure-arms Kinova Jaco2
 ## Overview
+### Setup and running:
+Follow the instructions [here](https://docs.google.com/document/d/1U_Y6YVRuo5g96acER3KHRvnXLiMlDnD1l2XDX_rjrJY/edit?usp=sharing) (skip to page 3 for running the Kinova in the real world).
+
 ### arm_control package:
 Used to control the Kinova Jaco2 with the infrastructure system. Currently used as a stop while the script for controlling the Kinova gen2 is ran seperately.
 
