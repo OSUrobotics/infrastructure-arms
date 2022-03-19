@@ -22,7 +22,7 @@ class ExampleArmController():
 		#subprocess.call(["/home/sogol/kinova_Ws/src/kinova-ros/kinova_scripts/src/general_path_planner_kinova.py", "0", "0", "/home/sogol/kinova_Ws/src/kinova-ros/kinova_scripts/src/joint_angles/drawer_path.csv"])
 		#subprocess.call(["/home/testbed-tower/kinova_ws/src/kinova-ros/kinova_scripts/src/kinova_infrastructure_planning/kinova_scripts/src/general_path_planner_kinova.py", "0", "0", "/home/testbed-tower/kinova_ws/src/kinova-ros/kinova_scripts/src/kinova_infrastructure_planning/kinova_scripts/src/joint_angles/better_testbed.csv"])
 		#pseudo timer
-		user_in = raw_input("press key")
+		user_in = raw_input("press Enter")
 		time.sleep(1)
 		self.start_arm.set_succeeded(StageResult(result = 0), text="SUCCESS")
 

@@ -18,7 +18,9 @@
 <!-- Spawn a robot into Gazebo -->
 <!-- <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param robot_description_drawer -urdf -model robot" /> -->
 
-<!--source list is name of rostopic to retrieve joint angles from and updated the robotModel (drawer_updater.py provides the drawer_distance topic)-->
+<!-- source list is name of rostopic to retrieve joint angles from and updated the robotModel (drawer_updater.py provides the drawer_distance topic)
+     For rosbag implementation: change the source list to whatever topic the rosbag publishes for the drawer distance values
+-->
 <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" >
     <rosparam param="source_list">["drawer_distance"]</rosparam>
 </node>
