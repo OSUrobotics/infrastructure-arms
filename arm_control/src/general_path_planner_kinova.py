@@ -6,6 +6,8 @@
 # 
 # script for capturing/executing joint poses on kinova arm either virtually or in real world.
 #
+# Modified to work within another node. (removed node initialization)
+#
 # referenced: kinova_path_planning.py by Nuha Nishat
 
 import rospy
@@ -70,20 +72,20 @@ class MoveRobot():
         if self.environment == 2:
             joint_state_topic = ['joint_states:=/j2s7s300/joint_states']
             moveit_commander.roscpp_initialize(joint_state_topic)
-            rospy.init_node('move_kinova', anonymous=False)
+            #rospy.init_node('move_kinova', anonymous=False)
             moveit_commander.roscpp_initialize(sys.argv)
         
         # For real robot launch use
         elif self.environment == 0:
             joint_state_topic = ['joint_states:=/j2s7s300_driver/out/joint_state']
             moveit_commander.roscpp_initialize(joint_state_topic)
-            rospy.init_node('move_kinova', anonymous=False)
+            #rospy.init_node('move_kinova', anonymous=False)
             moveit_commander.roscpp_initialize(sys.argv)
         
         # for virtual robot launch use
         elif self.environment == 1:
             moveit_commander.roscpp_initialize(sys.argv)
-            rospy.init_node('move_kinova', anonymous=True)
+            #rospy.init_node('move_kinova', anonymous=True)
         
         else:
             raise IOError("invalid second argument (must be 0, 1, or 2)")
