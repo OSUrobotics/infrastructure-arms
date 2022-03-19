@@ -5,6 +5,8 @@ import rospy
 import actionlib
 import time
 from infrastructure_msgs.msg import StageAction, StageGoal, StageFeedback, StageResult
+# for running example paths
+from general_path_planner_kinova import MoveRobot
 
 class ExampleArmController():
 	
@@ -18,12 +20,18 @@ class ExampleArmController():
 	
 		self.start_arm.publish_feedback(StageFeedback(status="EXAMPLE: GRABBING OBJECT"))
 		###do any arm calls or work here
-		# can have path planner in same directory as example_arm_controller.py
-		#subprocess.call(["/home/sogol/kinova_Ws/src/kinova-ros/kinova_scripts/src/general_path_planner_kinova.py", "0", "0", "/home/sogol/kinova_Ws/src/kinova-ros/kinova_scripts/src/joint_angles/drawer_path.csv"])
+		
+		# For running testbed example script:
+		# (quick method of running a process and blocking. Uses general path planner script to read joint angle csv with real kinova robot)
 		#subprocess.call(["/home/testbed-tower/kinova_ws/src/kinova-ros/kinova_scripts/src/kinova_infrastructure_planning/kinova_scripts/src/general_path_planner_kinova.py", "0", "0", "/home/testbed-tower/kinova_ws/src/kinova-ros/kinova_scripts/src/kinova_infrastructure_planning/kinova_scripts/src/joint_angles/better_testbed.csv"])
-		#pseudo timer
-		user_in = raw_input("press Enter")
-		time.sleep(1)
+		# Better method, importing class from general path planner:
+		example_controller = MoveRobot(0, 0, "testbed_example_path.csv")
+		example_controller.Run()
+
+		# For manual stop:
+		#user_in = raw_input("press Enter")
+		#time.sleep(1)
+		
 		self.start_arm.set_succeeded(StageResult(result = 0), text="SUCCESS")
 
 
