@@ -107,7 +107,7 @@ class MoveRobot():
 
         self.apply_scene = rospy.ServiceProxy('/apply_planning_scene', ApplyPlanningScene)
         self.get_scene = rospy.ServiceProxy('/get_planning_scene', GetPlanningScene)
-        rospy.sleep(2)
+        #rospy.sleep(2)
 
         # To see the trajectory
         self.disp = DisplayTrajectory()
@@ -155,12 +155,12 @@ class MoveRobot():
 
         self.move_group.set_pose_target(pose_goal)
         self.move_group.set_planning_time(20)
-        rospy.sleep(2)
+        #rospy.sleep(2)
         self.move_group.go(wait=True)
         self.move_group.stop()
 
         self.move_group.clear_pose_targets()
-        rospy.sleep(2)
+        #rospy.sleep(2)
 
     def display_trajectory(self):
         self.disp_pub = rospy.Publisher("/move_group/display_planned_path", DisplayTrajectory,
@@ -182,7 +182,7 @@ class MoveRobot():
             self.move_gripper.go(wait=True)
             self.move_gripper.stop()
             self.move_gripper.clear_pose_targets()
-            rospy.sleep(2)
+            #rospy.sleep(2)
             return True
         except:
             return False
@@ -209,7 +209,7 @@ class MoveRobot():
             self.move_group.go(wait=True)
             self.move_group.stop()
             self.move_group.clear_pose_targets()
-            rospy.sleep(2)
+            #rospy.sleep(2)
             return True
         except:
             return False
