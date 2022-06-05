@@ -3,7 +3,8 @@
      currently launches drawer robot and data manipulation nodes
 -->
 
-<arg name="data" default=""/>
+<arg name="sensor_data" default=""/>
+<arg name="timestamp_data" default=""/>
 <arg name="position" default="'0 0 0'"/>
 <arg name="rotation" default="'0 0 0'"/>
 <group ns="drawer">
@@ -27,7 +28,7 @@
 
 <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true" output="screen"  />
 
-<node pkg="kinova_description" name="drawer_updater" type="drawer_updater.py" args="$(arg data)" output="screen"/>
+<node pkg="kinova_description" name="drawer_updater" type="drawer_updater.py" args="$(arg sensor_data) $(arg timestamp_data)" output="screen"/>
 
 <!-- graph testing -->
 <node pkg="kinova_description" name="data_plotter" type="data_plotter.py" output="screen"/>

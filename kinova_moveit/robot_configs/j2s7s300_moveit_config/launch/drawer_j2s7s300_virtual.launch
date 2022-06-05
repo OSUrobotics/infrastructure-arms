@@ -6,11 +6,16 @@
     <arg name="rotation" default="'-1.5708 -3.1416 -3.1416'"/>
     
     <!-- Path to CSV file containing trial data. Default was for testing purposes -->
-    <arg name="data" default="/home/sogol/Documents/drawer_tests/real_kinova_tests/drawer_trial10.csv"/>
+    <!-- <arg name="data" default="/home/sogol/Documents/drawer_tests/real_kinova_tests/drawer_trial10.csv"/> -->
+
+    <!-- Path to ROSBAG files containing trial data-->
+    <arg name="sensor_data" default=""/>
+    <arg name="timestamp_data" default=""/>
 
     <include file="$(find j2s7s300_moveit_config)/launch/j2s7s300_virtual_robot_demo_visualization.launch" />
     <include file="$(find kinova_description)/launch/drawer_spawn.launch">
-        <arg name="data" value="$(arg data)"/>
+        <arg name="sensor_data" value="$(arg sensor_data)"/>
+         <arg name="timestamp_data" value="$(arg timestamp_data)"/>
          <arg name="position" value="$(arg position)"/>
          <arg name="rotation" value="$(arg rotation)"/>
     </include>
