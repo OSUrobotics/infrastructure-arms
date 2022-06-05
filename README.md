@@ -19,11 +19,13 @@ Modified source code and configuration packages for the Kinova Jaco2. Modificati
   - Launches all launch files related to Data visualization.
   - To run:
     ```console
-    roslaunch j2s7s300_moveit_config drawer_j2s7s300_virtual.launch data:=<string> position:='x y z' rotation:='r p y'
+    roslaunch j2s7s300_moveit_config drawer_j2s7s300_virtual.launch sensor_data:=<string> timestamp_data:=<string> position:='x y z' rotation:='r p y'
     ```
   - Launch parameters:
     ```
-    data:=<string> (path name for CSV file containing Drawer trial information)
+    sensor_data:=<string> (Rosbag file containing sensor data for apparatus)
+    
+    timestamp_data:=<string> (Rosbag file containing timestamps for the trials for the apparatus) - Not used
 
     position:='x y z' (Position of Drawer model (in meters) in RVIZ, relative to the origin)
   
