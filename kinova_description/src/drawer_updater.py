@@ -7,7 +7,22 @@ from kinova_description.srv import Data, DataResponse
 
 """
 publisher that publishes to /drawer_distance to control joint pose of drawer robot model.
-drawer_data service not being used in current implementation
+ 
+ - Currently does not utilize time stamps and publishes all trials in sensor rosbag.
+ 
+ - Once it reaches last trial in bag file, will loop back to trial 1.
+
+ - Publishes at same frequency as rosbag file.
+
+ - Skips down time between trials.
+
+ - Assumes that if there is > 1 second time skip between msgs, then new trial has started.
+
+ - Uses -.001 as a multiplier for tof values to scale down to Rviz units as well as correct direction.
+
+ Author: Ryan Roberts
+ Email : roberyan@oregonstate.edu
+ Date  : 5/2022
 """
 
 def getFPS(data):
@@ -35,7 +50,6 @@ def parseRosBags(sensors, timestamps):
         print("\n# =================== Sensor Bag ====================")
         print("# timestamp (sec): {:.9f}".format(t.to_sec())),
         print("# - - -")
-        # Print the message
         print(msg.tof)
         print(msg.current_time)
         break
@@ -47,19 +61,14 @@ def parseRosBags(sensors, timestamps):
         print("\n# =================== Timestamp Bag ====================")
         print("# timestamp (sec): {:.9f}".format(t.to_sec())),
         print("# - - -")
-        # Print the message
         print(msg.trial_number)
-        print(msg.collection_end_time)
+        print(msg.total_time)
     timestamp_bag.close()
 
-#returns drawer distance currently
-# def replay_callback(request):
-#     rospy.loginfo("callback for service ran!")
-#     global distances, fps
-#     return DataResponse(distances, fps)
-
 """
-params: csv file containing drawer data
+params: 
+    1 - Rosbag file for drawer sensor data (hardware_infsensor)
+    2 - Rosbag file for timestamps (hardware_timestamps)
 """
 if __name__ == "__main__":
     rospy.init_node('drawer_updater', argv=sys.argv)
@@ -70,18 +79,37 @@ if __name__ == "__main__":
 
     # fps, distances = getFPS(sys.argv[1])
     
-    #specifically wait until distances and fps are retrieved
-    # replay_service = rospy.Service('drawer_data', Data, replay_callback)
-    # rate = rospy.Rate(fps)
-    rate = rospy.Rate(32.5) # avg rate of data publishing in infrastructure system for drawer currently.
+    # rate = rospy.Rate(32.5) # avg rate of data publishing in infrastructure system for drawer currently.
+
+    start = rospy.Time.now()
+    sim_start = None
+
     while not rospy.is_shutdown():
         # for i in distances:
         for topic, msg, t in sensor_bag.read_messages(None):
+            now = rospy.Time.now()
+            if sim_start is None:
+                sim_start = t
+            else:
+                real_time = now - start
+                sim_time = t - sim_start
+                if sim_time > real_time:
+                    sleep_time = sim_time - real_time
+                    # assuming if time difference is > 1 second, then trial is over & we skip to next one
+                    if sleep_time.secs <= 1:
+                        rospy.sleep(sleep_time)
+                    else:
+                        # reset real time and start next trial
+                        start = rospy.Time.now()
+                        sim_start = None
             message = JointState()
             message.name = ["drawer_slider"]
-            message.position = [msg.tof]
+            message.position = [msg.tof * -.001] #reverse sign for model in rviz
             message.velocity = []
             message.effort = []
-            # if(msg.current_time )
             pub.publish(message)
-            rate.sleep()
+            if rospy.is_shutdown():
+                break
+    
+    # before process ends:
+    sensor_bag.close()

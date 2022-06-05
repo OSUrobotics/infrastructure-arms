@@ -14,7 +14,7 @@
 
     <include file="$(find j2s7s300_moveit_config)/launch/j2s7s300_virtual_robot_demo_visualization.launch" />
     <include file="$(find kinova_description)/launch/drawer_spawn.launch">
-        <arg name="sensor_data" value="$(arg sensor_data)"/>
+         <arg name="sensor_data" value="$(arg sensor_data)"/>
          <arg name="timestamp_data" value="$(arg timestamp_data)"/>
          <arg name="position" value="$(arg position)"/>
          <arg name="rotation" value="$(arg rotation)"/>
