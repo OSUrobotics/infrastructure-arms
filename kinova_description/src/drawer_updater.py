@@ -72,19 +72,20 @@ params:
 """
 if __name__ == "__main__":
     rospy.init_node('drawer_updater', argv=sys.argv)
-    pub = rospy.Publisher('drawer_distance', JointState, queue_size=10)
+    drawer_pub = rospy.Publisher('drawer_distance', JointState, queue_size=10)
     
-    # parseRosBags(sys.argv[1], sys.argv[2])
-    sensor_bag = rosbag.Bag(sys.argv[1])
+    sensor_bag = rosbag.Bag(rospy.get_param("/sensor_data_rosbag"))
+    robot_pub = rospy.Publisher(rospy.get_param("/robot_topic_name","/"), JointState, queue_size=10)
 
     # fps, distances = getFPS(sys.argv[1])
     
     # rate = rospy.Rate(32.5) # avg rate of data publishing in infrastructure system for drawer currently.
 
-    start = rospy.Time.now()
-    sim_start = None
-
     while not rospy.is_shutdown():
+        # TODO: implement wait until pyqt service is up and running
+        # repeat trial indefinitely
+        start = rospy.Time.now()
+        sim_start = None
         # for i in distances:
         for topic, msg, t in sensor_bag.read_messages(None):
             now = rospy.Time.now()
@@ -95,21 +96,27 @@ if __name__ == "__main__":
                 sim_time = t - sim_start
                 if sim_time > real_time:
                     sleep_time = sim_time - real_time
-                    # assuming if time difference is > 1 second, then trial is over & we skip to next one
+                    # assuming if time difference is > 1 second, then trial is over & we skip to next one - not needed with new data structure
                     if sleep_time.secs <= 1:
                         rospy.sleep(sleep_time)
                     else:
                         # reset real time and start next trial
                         start = rospy.Time.now()
                         sim_start = None
-            message = JointState()
-            message.name = ["drawer_slider"]
-            message.position = [msg.tof * -.001] #reverse sign for model in rviz
-            message.velocity = []
-            message.effort = []
-            pub.publish(message)
+            if (topic == "/hardware_infsensor"):
+                message = JointState()
+                message.name = ["drawer_slider"]
+                message.position = [msg.tof * -.001] #reverse sign for model in rviz
+                message.velocity = []
+                message.effort = []
+                drawer_pub.publish(message)
+            else:
+                # robot joint state topic. msg should already be a joint state. TODO: add error checking for msg type
+                robot_pub.publish(msg)
+                
             if rospy.is_shutdown():
                 break
+        # break # break if want to stop after 1 run
     
     # before process ends:
     sensor_bag.close()
