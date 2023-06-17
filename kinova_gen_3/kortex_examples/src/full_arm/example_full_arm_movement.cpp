@@ -179,7 +179,7 @@ bool example_send_cartesian_pose(ros::NodeHandle n, const std::string &robot_nam
 
   service_execute_waypoints_trajectory.request.input.duration = 0;
   service_execute_waypoints_trajectory.request.input.use_optimal_blending = false;
-
+  
   if (service_client_execute_waypoints_trajectory.call(service_execute_waypoints_trajectory))
   {
     ROS_INFO("The new cartesian pose was sent to the robot.");
@@ -208,7 +208,7 @@ bool example_send_joint_angles(ros::NodeHandle n, const std::string &robot_name,
   kortex_driver::Waypoint waypoint;
   kortex_driver::AngularWaypoint angularWaypoint;
 
-   // Angles to send the arm to vertical position (all zeros)
+  // Angles to send the arm to vertical position (all zeros)
   for (unsigned int i = 0; i < degrees_of_freedom; i++)
   {
     angularWaypoint.angles.push_back(0.0);
@@ -232,15 +232,15 @@ bool example_send_joint_angles(ros::NodeHandle n, const std::string &robot_name,
     ROS_ERROR("%s", error_string.c_str());
     return false;
   }
-
+  
   int error_number = service_validate_waypoint_list.response.output.trajectory_error_report.trajectory_error_elements.size();
   static const int MAX_ANGULAR_DURATION = 30;
-
+  
   while (error_number >= 1 && angular_duration < MAX_ANGULAR_DURATION)
   {
     angular_duration++;
     trajectory.waypoints[0].oneof_type_of_waypoint.angular_waypoint[0].duration = angular_duration;
-
+    
     service_validate_waypoint_list.request.input = trajectory;
     if (!service_client_validate_waypoint_list.call(service_validate_waypoint_list))
     {

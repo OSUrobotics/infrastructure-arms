@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(gazebo_grasp_plugin)
 
+# This is added to remove policy CMP0054 warning (see https://stackoverflow.com/questions/45900159/how-to-use-variables-and-avoid-cmp0054-policy-violations)
+cmake_policy(SET CMP0054 NEW)
+
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -38,14 +41,11 @@ catkin_package(
 ###########
 ## Build ##
 ###########
-# check c++17 / c++11 / c++0x
+# check c++11 / c++0x
 include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG("-std=c++17" COMPILER_SUPPORTS_CXX17)
 CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
 CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
-if(COMPILER_SUPPORTS_CXX17)
-    set(CMAKE_CXX_FLAGS "-std=c++17")
-elseif(COMPILER_SUPPORTS_CXX11)
+if(COMPILER_SUPPORTS_CXX11)
     set(CMAKE_CXX_FLAGS "-std=c++11")
 elseif(COMPILER_SUPPORTS_CXX0X)
     set(CMAKE_CXX_FLAGS "-std=c++0x")
@@ -67,6 +67,10 @@ link_directories(
   ${GAZEBO_LIBRARY_DIRS}
 )
 
+# Protobuf 2.6.1 includes were copied in kortex_gazebo/include and are necessary to build Gazebo plugins
+include_directories(BEFORE ../../../kortex_gazebo/include/)
+link_directories(BEFORE ../../../kortex_gazebo/lib/)
+
 ## Declare a cpp library
 add_library(gazebo_grasp_fix SHARED src/GazeboGraspFix.cpp src/GazeboGraspGripper.cpp)
 
@@ -78,9 +82,9 @@ add_dependencies(gazebo_grasp_fix ${catkin_EXPORTED_TARGETS})
 ## Specify libraries to link a library or executable target against
 
 target_link_libraries(gazebo_grasp_fix 
-	${catkin_LIBRARIES} 
-	${GAZEBO_LIBRARIES} 
-	${Boost_LIBRARIES}
+	${catkin_LIBRARIES}  
+  ${Boost_LIBRARIES}
+  libprotobuf.so
 )
 
 #############

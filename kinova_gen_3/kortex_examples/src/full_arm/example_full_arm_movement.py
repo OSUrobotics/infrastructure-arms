@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 ###
 # KINOVA (R) KORTEX (TM)
 #
@@ -239,20 +239,20 @@ class ExampleFullArmMovement:
         except rospy.ServiceException:
             rospy.logerr("Failed to call ValidateWaypointList")
             return False
-
+        
         error_number = len(res.output.trajectory_error_report.trajectory_error_elements)
         MAX_ANGULAR_DURATION = 30
-
+        
         while (error_number >= 1 and angular_duration != MAX_ANGULAR_DURATION) :
             angular_duration += 1
             trajectory.waypoints[0].oneof_type_of_waypoint.angular_waypoint[0].duration = angular_duration
-
+            
             try:
                 res = self.validate_waypoint_list(trajectory)
             except rospy.ServiceException:
                 rospy.logerr("Failed to call ValidateWaypointList")
                 return False
-
+            
             error_number = len(res.output.trajectory_error_report.trajectory_error_elements)
 
         if (angular_duration == MAX_ANGULAR_DURATION) :

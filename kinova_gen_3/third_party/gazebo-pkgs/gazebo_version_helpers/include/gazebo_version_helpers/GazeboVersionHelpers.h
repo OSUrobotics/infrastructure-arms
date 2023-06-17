@@ -7,22 +7,13 @@ namespace gazebo
 {
 
 // typedefs
-#if GAZEBO_MAJOR_VERSION >= 11
+#if GAZEBO_MAJOR_VERSION >= 8
 namespace gz_math = ignition::math;
 typedef gz_math::Pose3d GzPose3;
 typedef gz_math::Vector3d GzVector3;
 typedef gz_math::Quaterniond GzQuaternion;
 typedef gz_math::Matrix4d GzMatrix4;
 typedef gz_math::Matrix3d GzMatrix3;
-typedef gz_math::AxisAlignedBox GzBox;
-#elif GAZEBO_MAJOR_VERSION >= 8
-namespace gz_math = ignition::math;
-typedef gz_math::Pose3d GzPose3;
-typedef gz_math::Vector3d GzVector3;
-typedef gz_math::Quaterniond GzQuaternion;
-typedef gz_math::Matrix4d GzMatrix4;
-typedef gz_math::Matrix3d GzMatrix3;
-typedef gz_math::Box GzBox;
 #else
 namespace gz_math = gazebo::math;
 typedef gz_math::Pose GzPose3;
@@ -30,9 +21,7 @@ typedef gz_math::Vector3 GzVector3;
 typedef gz_math::Quaternion GzQuaternion;
 typedef gz_math::Matrix4 GzMatrix4;
 typedef gz_math::Matrix3 GzMatrix3;
-typedef gz_math::Box GzBox;
 #endif
-
 
 // Helper functions
 // //////////////////////////
@@ -127,7 +116,7 @@ std::string GetName(const T& t)
 
 ///////////////////////////////////////////////////////////////////////////////
 template<typename T>
-GzBox GetBoundingBox(const T &t)
+gz_math::Box GetBoundingBox(const T &t)
 {
 #if GAZEBO_MAJOR_VERSION >= 8
     return t.BoundingBox();
@@ -137,7 +126,7 @@ GzBox GetBoundingBox(const T &t)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-GzVector3 GetBoundingBoxDimensions(const GzBox &box);
+GzVector3 GetBoundingBoxDimensions(const gz_math::Box &box);
 
 ///////////////////////////////////////////////////////////////////////////////
 template<typename T>

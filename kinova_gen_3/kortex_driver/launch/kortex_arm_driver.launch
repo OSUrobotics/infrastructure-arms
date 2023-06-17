@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-    
+
     <!-- Arm configuration -->
     <arg name="arm" default="gen3"/>
     <arg name="dof" default="7" if="$(eval arg('arm') == 'gen3')"/> <!-- Number of degrees of freedom of the arm -->

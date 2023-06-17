@@ -23,12 +23,7 @@ The source code is released under a [BSD 3-Clause license](../LICENSE).
 Affiliation: [Kinova inc.](https://www.kinovarobotics.com/)<br />
 Maintainer: Kinova inc. support@kinova.ca**
 
-This package has been tested under ROS Noetic with Gazebo 11.
-
-For older versions, checkout on corresponding branch : 
-
-- [melodic-devel](https://github.com/Kinovarobotics/ros_kortex/tree/melodic-devel) for ROS Melodic and Gazebo 9. 
-- [kinetic-devel](https://github.com/Kinovarobotics/ros_kortex/tree/kinetic-devel) for ROS Kinetic and Gazebo 7 (the melodic-devel branch might work for this configuration).
+This package has been tested under ROS Kinetic, Gazebo 7 and Ubuntu 16.04 and under ROS Melodic, Gazebo 9 and Ubuntu 18.04.
 
 ## A word on stability of the models
  

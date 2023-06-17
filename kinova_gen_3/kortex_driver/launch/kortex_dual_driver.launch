@@ -94,7 +94,6 @@
         <arg name="robot_name" value="$(arg left_robot_name)"/>
     </include>
 
-
     <!-- Start the right arm kortex_driver node -->
     <include file="$(find kortex_driver)/launch/kortex_arm_driver.launch">
         <arg name="sim" value="false"/>
@@ -120,6 +119,7 @@
         <rosparam param="source_list" subst_value="true">
             [$(arg left_robot_name)/base_feedback/joint_state, $(arg right_robot_name)/base_feedback/joint_state]
         </rosparam>
+        <param name="use_gui" value="false"/>
     </node>
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
 
