@@ -1,4 +1,16 @@
 This README Is out of date. Work in progress as of June 2023
+https://answers.gazebosim.org//question/25030/gazebo-error-restcc205-error-in-rest-request/
+sudo apt-get install ros-melodic-joint-trajectory-controller
+sudo apt-get install ros-melodic-effort-controllers
+
+
+To launch virtual Gazebo robot and Rviz:
+roslaunch kinova_gazebo robot_launch.launch kinova_robotType:=j2s7s300
+roslaunch j2s7s300_moveit_config j2s7s300_gazebo_demo.launch
+
+To launch real robot and Rviz:
+roslaunch kinova_bringup kinova_robot.launch kinova_robotType:=j2s7s300
+roslaunch j2s7s300_moveit_config j2s7s300_demo.launch
 
 
 General layout
