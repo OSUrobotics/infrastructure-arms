@@ -1,3 +1,15 @@
+This README Is out of date. Work in progress as of June 2023
+
+
+General layout
+* Arm Control
+  * Example control files for each arm
+* kinova_jayco_2
+  * Launch files, resources, etc. for the Kinova Jayco 2
+* kinova_gen_3
+  * Launch files, resources, etc. for the Kinova Gen 3
+
+
 # infrastructure-arms Kinova Jaco2
 ## Overview
 ### Setup and running:
