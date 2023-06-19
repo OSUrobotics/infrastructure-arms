@@ -43,7 +43,9 @@ class DoorArmController():
         self.robot = moveit_commander.RobotCommander()
 
         # Setting the world
-        self.scene = moveit_commander.PlanningSceneInterface()
+        self.scene = moveit_commander.PlanningSceneInterface(synchronous=True)
+        
+
 
         # Define the planning group for the arm you are using
         # You can easily look it up on rviz under the MotionPlanning tab
@@ -64,7 +66,16 @@ class DoorArmController():
 
         self.rate = rospy.Rate(10)
 
-        self.move_group.allow_replanning(1)
+        self.move_group.allow_replanning(1)      
+
+        ## Add constraint areas 
+        self.add_box(pos=[.75,0,-.05], dim=[2,2,.1], name="based")
+        self.add_box(pos=[.62,0,.9], dim=[.1, .1, .5], name="cam_stand")
+        self.add_box(pos=[1.08,0,.5], dim=[.1, 2, 1], name="backdrop")
+        self.add_box(pos=[.08,0,1.1], dim=[1, 1, .1], name="top")
+        self.add_box(pos=[.75,0,-.05], dim=[2,2,.1], name="based2")
+        rospy.loginfo("Added scene constraints.")
+
 
         #how much to round joint angles
         self.joint_angle_rounded = 2 
@@ -83,6 +94,7 @@ class DoorArmController():
         print("Current pose", self.current_pose)
         print(Pose())
 
+
  
     def start_arm_sequence_callback(self, goal):
     
@@ -91,6 +103,34 @@ class DoorArmController():
         # Do arm call here
         sleep(1)
         self.start_arm.set_succeeded(StageResult(result = 0), text="SUCCESS")
+
+
+    def add_box(self, dim, pos, name):
+        box_pose = PoseStamped()
+        box_pose.header.frame_id = "world"
+        box_pose.pose.orientation.w = 1.0
+        box_pose.pose.position.x = pos[0] 
+        box_pose.pose.position.y = pos[1]  
+        box_pose.pose.position.z = pos[2] 
+        box_name = name
+        self.scene.add_box(box_name, box_pose, size=(dim[0], dim[1], dim[2]))
+
+        start = rospy.get_time()
+        seconds = rospy.get_time()
+        while (seconds - start < 5) and not rospy.is_shutdown():
+            # Test if the box is in the scene.
+            # Note that attaching the box will remove it from known_objects
+            is_known = box_name in self.scene.get_known_object_names()
+            # Test if we are in the expected state
+            if is_known == True:
+                return True
+                print("added box")
+            # Sleep so that we give other threads time on the processor
+            rospy.sleep(0.1)
+            seconds = rospy.get_time()
+            # If we exited the while loop without returning then we timed out
+        print("failed adding box")
+        return False
 
 
 
