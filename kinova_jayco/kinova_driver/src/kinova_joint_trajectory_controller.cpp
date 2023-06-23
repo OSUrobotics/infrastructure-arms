@@ -196,9 +196,11 @@ void JointTrajectoryController::commandCB(const trajectory_msgs::JointTrajectory
 void JointTrajectoryController::pub_joint_vel(const ros::TimerEvent&)
 {
     // send out each velocity command with corresponding duration delay.
+    // traj_command_points_index_ is indexed with every complete move. This is which pose we are moving to (i.e. Pose 1, then Pose 2, etc.)
 
     kinova_msgs::JointVelocity joint_velocity_msg;
-
+    ROS_INFO("traj_command_points_index_ %i  kinova_angle_command_.size(): %lu", traj_command_points_index_, kinova_angle_command_.size());
+    ROS_INFO("Rosok %d", ros::ok());
     if (traj_command_points_index_ <  kinova_angle_command_.size() && ros::ok())
     {
         joint_velocity_msg.joint1 = kinova_angle_command_[traj_command_points_index_].Actuator1;
@@ -217,8 +219,44 @@ void JointTrajectoryController::pub_joint_vel(const ros::TimerEvent&)
 //                          std::endl <<" joint_velocity_msg.joint5: " << joint_velocity_msg.joint5 * M_PI/180 <<
 //                          std::endl <<" joint_velocity_msg.joint6: " << joint_velocity_msg.joint6 * M_PI/180 );
 
-        pub_joint_velocity_.publish(joint_velocity_msg);
+        
+     /*
+        bool inside_goal_constraints = true;
+        for (size_t j = 0; j < joint_names_.size(); j++)
+        {
+            ROS_INFO("Joint %ld position error: %lf", j, traj_feedback_msg_.error.positions[j]);
+            if (fabs(traj_feedback_msg_.error.positions[j]) > 0.01 && traj_command_points_index_ > 0) {
+                inside_goal_constraints = false;
+            } else {
+                // Here this actuator is within tolerance, so stop it
+                switch(j) {
+                    case 0:
+                        joint_velocity_msg.joint1 = 0;
+                    case 1:
+                        joint_velocity_msg.joint2 = 0;
+                    case 2:
+                        joint_velocity_msg.joint3 = 0;
+                    case 3:
+                        joint_velocity_msg.joint4 = 0;
+                    case 4:
+                        joint_velocity_msg.joint5 = 0;
+                    case 5:
+                        joint_velocity_msg.joint6 = 0;
+                    case 6:
+                        joint_velocity_msg.joint7 = 0;
 
+                    }
+            }
+        }
+        pub_joint_velocity_.publish(joint_velocity_msg);
+        if (inside_goal_constraints) {
+            ROS_INFO_STREAM("Moved to point " << traj_command_points_index_++);
+        }
+    }
+    */
+    
+        pub_joint_velocity_.publish(joint_velocity_msg);
+        ros::Duration d(0.5);
         if( (ros::Time::now() - time_pub_joint_vel_) >= traj_command_points_[traj_command_points_index_].time_from_start)
         {
             ROS_INFO_STREAM("Moved to point " << traj_command_points_index_++);
@@ -226,6 +264,8 @@ void JointTrajectoryController::pub_joint_vel(const ros::TimerEvent&)
     }
     else // if come accross all the points, then stop timer.
     {
+        ros::Duration(1.0).sleep();
+        ROS_INFO("Done");
         joint_velocity_msg.joint1 = 0;
         joint_velocity_msg.joint2 = 0;
         joint_velocity_msg.joint3 = 0;

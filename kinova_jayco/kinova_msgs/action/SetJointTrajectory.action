@@ -1,0 +1,8 @@
+# Goal
+trajectory_msgs/JointTrajectory joint_poses
+---
+# Result
+trajectory_msgs/JointTrajectory joint_poses
+---
+# Feedback message
+trajectory_msgs/JointTrajectory joint_poses

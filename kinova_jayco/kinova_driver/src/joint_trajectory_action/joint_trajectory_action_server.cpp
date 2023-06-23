@@ -142,6 +142,8 @@ void JointTrajectoryActionController::watchdog(const ros::TimerEvent &e)
 
 void JointTrajectoryActionController::goalCBFollow(FJTAS::GoalHandle gh)
 {
+    //This actually publishes the joint trajectory!!
+    // We need to check and verify what info topic j2s7s300_driver/trajectory_controller/command is recieving 
     ROS_INFO("Joint_trajectory_action_server received goal!");
 
     // Ensures that the joints in the goal match the joints we are commanding.
@@ -228,9 +230,33 @@ void JointTrajectoryActionController::controllerStateCB(const control_msgs::Foll
         ROS_ERROR_ONCE("Joint names from the controller don't match our joint names.");
         return;
     }
-
+    /*
     int last = current_traj_.points.size() - 1;
     ros::Time end_time = start_time_ + current_traj_.points[last].time_from_start;
+
+    bool inside_goal_constraints = true;
+    for (size_t i = 0; i < msg->joint_names.size(); ++i) {
+        double abs_error = fabs(msg->actual.positions[i] - current_traj_.points[last].positions[i]);
+        double goal_constraint = 0.01; //goal_constraints_[msg->joint_names[i]];
+        ROS_INFO("Joint %ld abs_error: %lf, and goal constraint is: %lf. (%lf - %lf)", i, abs_error, goal_constraint, msg->actual.positions[i], current_traj_.points[last].positions[i]);
+        if (goal_constraint >= 0 && abs_error > goal_constraint)
+            inside_goal_constraints = false;
+        // It's important to be stopped if that's desired.
+        if ( !(msg->desired.velocities.empty()) && (fabs(msg->desired.velocities[i]) < 1e-6) )
+        {
+            if (fabs(msg->actual.velocities[i]) > stopped_velocity_tolerance_)
+                inside_goal_constraints = false;
+        }
+    }
+    if (inside_goal_constraints) {
+        active_goal_.setSucceeded();
+        has_active_goal_ = false;
+        first_fb_ = true;
+    
+    } */
+    int last = current_traj_.points.size() - 1;
+    ros::Time end_time = start_time_ + current_traj_.points[last].time_from_start;
+    ROS_INFO("Goal tie constraint %d", goal_time_constraint_);
 
     if (end_time - now < ros::Duration(goal_time_constraint_))
     {
@@ -266,6 +292,7 @@ void JointTrajectoryActionController::controllerStateCB(const control_msgs::Foll
             active_goal_.setAborted();
             has_active_goal_ = false;
         }
+        
     }
 }
 
