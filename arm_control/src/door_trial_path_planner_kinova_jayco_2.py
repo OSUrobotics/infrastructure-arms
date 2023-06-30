@@ -122,8 +122,8 @@ class DoorArmController():
 
 
         self.current_pose.pose.position.x -= 0
-        self.current_pose.pose.position.y += 0
-        self.current_pose.pose.position.z -= .2
+        self.current_pose.pose.position.y += -.1
+        self.current_pose.pose.position.z += .2
         self.current_joint_values = self.move_group.get_current_joint_values() # How to get current joint positions
         print("Joint angles", self.current_joint_values)
         self.move_group.set_pose_target(self.current_pose)
@@ -132,11 +132,13 @@ class DoorArmController():
         self.move_group.clear_pose_targets()
 
         self.current_joint_values = self.move_group.get_current_joint_values() # How to get current joint positions
+        self.current_pose = self.move_group.get_current_pose() #
         print("Joint angles", self.current_joint_values)
-        user = raw_input("Waiting to move on")
+        print("Target pose", self.current_pose)
+        #user = raw_input("Waiting to move on")
 
-        self.current_pose.pose.position.x -= .05
-        self.current_pose.pose.position.y += .03
+        self.current_pose.pose.position.x += .1
+        self.current_pose.pose.position.y -= .15
         self.current_pose.pose.position.z += 0
         self.move_group.set_pose_target(self.current_pose)
         out = self.move_group.go(wait=True)

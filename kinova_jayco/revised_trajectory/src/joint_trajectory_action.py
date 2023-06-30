@@ -14,7 +14,7 @@ from kinova_msgs.msg import JointVelocity as KinovaVelocity
 from kinova_msgs.msg import JointAngles
 from copy import deepcopy
 from math import pi
-from numpy import sign, all, full, isclose
+from numpy import sign, all, full, isclose, argmax, array, absolute
 
 
 
@@ -66,17 +66,17 @@ class JointTrajectoryAction(object):
         rospy.loginfo(self.current_state)
 
         rate = rospy.Rate(50)
+
+
+        use_parsed_trajectory = False
         for i in range(len(self.trajectory_time)-1):
+            error = self.state_error()
+            direction = sign(error)
+
             
             joint_status = full((7, 1), False)
             # Get the direction of motion for error checking
-            direction = sign([self.parsed_trajectory[self.index].joint1, 
-                                self.parsed_trajectory[self.index].joint2, 
-                                self.parsed_trajectory[self.index].joint3, 
-                                self.parsed_trajectory[self.index].joint4, 
-                                self.parsed_trajectory[self.index].joint5, 
-                                self.parsed_trajectory[self.index].joint6, 
-                                self.parsed_trajectory[self.index].joint7])
+
             
             # Set joint velocities, update if are are within goal constraints
             velocity_msg = self.parsed_trajectory[self.index]
@@ -89,63 +89,111 @@ class JointTrajectoryAction(object):
                     # Break and stop arm and report failure
                     print("Time error!")
                     break
-                
+
                 # Check state error
                 error = self.state_error()
+                abs_error = absolute(deepcopy(error))
+                if use_parsed_trajectory:
+                    pass
+                else:
+                    # Here we need to update the parsed trajectory based on the diffence in positions, scaled by the biggest diff
+                    index_max = argmax(abs_error)
+                    velocity_out = array(error)/abs_error[index_max]
+                    print("Velocity out: ", velocity_out)
+                    multiplier = .2
+                    velocity_msg = KinovaVelocity()
+                    velocity_msg.joint1 = velocity_out[0] * 180/pi*multiplier
+                    velocity_msg.joint2 = velocity_out[1] * 180/pi*multiplier
+                    velocity_msg.joint3 = velocity_out[2] * 180/pi*multiplier
+                    velocity_msg.joint4 = velocity_out[3] * 180/pi*multiplier
+                    velocity_msg.joint5 = velocity_out[4] * 180/pi*multiplier
+                    velocity_msg.joint6 = velocity_out[5] * 180/pi*multiplier
+                    velocity_msg.joint7 = velocity_out[6] * 180/pi*multiplier
+            
                 
-
-                
-
-                print("test")
-                print(direction)
-                print("traj")
-                print(self.parsed_trajectory[self.index])
-
-
-                # For joint1
-                if (isclose(direction[0], 1.0) and error[0] < self.goal_contsraint) or (isclose(direction[0], -1.0) and error[0] > -self.goal_contsraint):
+                """
+                 # For joint1
+                if error[0] < self.goal_contsraint and error[0] > -self.goal_contsraint:
                     # Joint 1 within range
                     velocity_msg.joint1 = 0.0 
                     joint_status[0] = True
                     rospy.loginfo("Joint 1 in range")
-                if (isclose(direction[1], 1.0) and error[1] < self.goal_contsraint) or (isclose(direction[1], -1.0) and error[1] > -self.goal_contsraint):
+                if error[1] < self.goal_contsraint and error[1] > -self.goal_contsraint:
                     # Joint 1 within range
                     velocity_msg.joint2 = 0.0 
                     joint_status[1] = True
                     rospy.loginfo("Joint 2 in range")
-                if (isclose(direction[2], 1.0) and error[2] < self.goal_contsraint) or (isclose(direction[2], -1.0) and error[2] > -self.goal_contsraint):
+                if error[2] < self.goal_contsraint and error[2] > -self.goal_contsraint:
                     # Joint 1 within range
                     velocity_msg.joint3 = 0.0
                     joint_status[2] = True
                     rospy.loginfo("Joint 3 in range")
-                if (isclose(direction[3], 1.0) and error[3] < self.goal_contsraint) or (isclose(direction[3], -1.0) and error[3] > -self.goal_contsraint):
+                if error[3] < self.goal_contsraint and error[3] > -self.goal_contsraint:
                     # Joint 1 within range
                     velocity_msg.joint4 = 0.0 
                     joint_status[3] = True
                     rospy.loginfo("Joint 4 in range")
-                if (isclose(direction[4], 1.0) and error[4] < self.goal_contsraint) or (isclose(direction[4], -1.0) and error[4] > -self.goal_contsraint):
-                    # Joint 1 within range
+                if error[4] < self.goal_contsraint and error[4] > -self.goal_contsraint:
                     velocity_msg.joint5 = 0.0 
                     joint_status[4] = True 
                     rospy.loginfo("Joint 5 in range")
-                if (isclose(direction[5], 1.0) and error[5] < self.goal_contsraint) or (isclose(direction[5], -1.0) and error[5] > -self.goal_contsraint):
+                if error[5] < self.goal_contsraint and error[5] > -self.goal_contsraint:
                     # Joint 1 within range
                     velocity_msg.joint6 = 0.0 
                     joint_status[5] = True
                     rospy.loginfo("Joint 6 in range")
-                if (isclose(direction[6], 1.0) and error[6] < self.goal_contsraint) or (isclose(direction[6], -1.0) and error[6] > -self.goal_contsraint):
+                if error[6] < self.goal_contsraint and error[6] > -self.goal_contsraint:
                     # Joint 1 within range
                     velocity_msg.joint7 = 0.0 
                     joint_status[6] = True
                     rospy.loginfo("Joint 7 in range")
-                
-                print(joint_status)
+
+                """
+                # For joint1
+                if joint_status[0] == True or ((isclose(direction[0], 1.0) and error[0] < self.goal_contsraint) or (isclose(direction[0], -1.0) and error[0] > -self.goal_contsraint)):
+                    # Joint 1 within range
+                    velocity_msg.joint1 = 0.0 
+                    joint_status[0] = True
+                    rospy.loginfo("Joint 1 in range")
+                if joint_status[1] == True or ((isclose(direction[1], 1.0) and error[1] < self.goal_contsraint) or (isclose(direction[1], -1.0) and error[1] > -self.goal_contsraint)):
+                    # Joint 1 within range
+                    velocity_msg.joint2 = 0.0 
+                    joint_status[1] = True
+                    rospy.loginfo("Joint 2 in range")
+                if joint_status[2] == True or ((isclose(direction[2], 1.0) and error[2] < self.goal_contsraint) or (isclose(direction[2], -1.0) and error[2] > -self.goal_contsraint)):
+                    # Joint 1 within range
+                    velocity_msg.joint3 = 0.0
+                    joint_status[2] = True
+                    rospy.loginfo("Joint 3 in range")
+                if joint_status[3] == True or ((isclose(direction[3], 1.0) and error[3] < self.goal_contsraint) or (isclose(direction[3], -1.0) and error[3] > -self.goal_contsraint)):
+                    # Joint 1 within range
+                    velocity_msg.joint4 = 0.0 
+                    joint_status[3] = True
+                    rospy.loginfo("Joint 4 in range")
+                if joint_status[4] == True or ((isclose(direction[4], 1.0) and error[4] < self.goal_contsraint) or (isclose(direction[4], -1.0) and error[4] > -self.goal_contsraint)):
+                    # Joint 1 within range
+                    velocity_msg.joint5 = 0.0 
+                    joint_status[4] = True 
+                    rospy.loginfo("Joint 5 in range")
+                if joint_status[5] == True or ((isclose(direction[5], 1.0) and error[5] < self.goal_contsraint) or (isclose(direction[5], -1.0) and error[5] > -self.goal_contsraint)):
+                    # Joint 1 within range
+                    velocity_msg.joint6 = 0.0 
+                    joint_status[5] = True
+                    rospy.loginfo("Joint 6 in range")
+                if joint_status[6] == True or ((isclose(direction[6], 1.0) and error[6] < self.goal_contsraint) or (isclose(direction[6], -1.0) and error[6] > -self.goal_contsraint)):
+                    # Joint 1 within range
+                    velocity_msg.joint7 = 0.0 
+                    joint_status[6] = True
+                    rospy.loginfo("Joint 7 in range")
+            
+                #print("velocity msg: ", velocity_msg)
+                #print(joint_status)
                 all_zeros = all(joint_status)
                 print("all_zeros: ", all_zeros)
                 self.velocity_pub.publish(velocity_msg)
                 if all_zeros:
                     print("All zeros!")
-                    rospy.sleep(2.0)
+                    
                     self.index += 1
                     break
                 
@@ -154,39 +202,15 @@ class JointTrajectoryAction(object):
             
 
 
-        test = raw_input("hit enter")
 
-        # helper variables
-        r = rospy.Rate(1)
-        success = True
-        print(goal)
-        
-        rospy.loginfo("Callback happened!")
-        
-        # append the seeds for the fibonacci sequence
-        #self._feedback.sequence = []
-        ##self._feedback.sequence.append(0)
-        #self._feedback.sequence.append(1)
-        
-       
-        # start executing the action
-        # check that preempt has not been requested by the client
-        #if self._as.is_preempt_requested():
-        #    rospy.loginfo('%s: Preempted' % self._action_name)
-        #    self._as.set_preempted()
-        #    success = False
-        #    break
-        #self._feedback.sequence.append(self._feedback.sequence[i] + self._feedback.sequence[i-1])
-        #self._as.publish_feedback(self._feedback)
-        # this step is not necessary, the sequence is computed at 1 Hz for demonstration purposes
-        #r.sleep()
-        
-        #if success:
-        #    self._result.sequence = self._feedback.sequence
-        ##    rospy.loginfo('%s: Succeeded' % self._action_name)
-        #    self._as.set_succeeded(self._result)
+        print("final error: ", error)
+    
+        self._as.set_succeeded()
 
     def parse_trajectory(self, trajectory):
+
+    
+        # Move based on velocities from Moveit
         # Clear the previous parsed trajectory
         self.index = 1
         self.parsed_trajectory = []
@@ -219,28 +243,8 @@ class JointTrajectoryAction(object):
             self.trajectory_time.append(trajectory.trajectory.points[i].time_from_start.nsecs)
 
 
-        #print(self.parsed_trajectory)
-        #print("First", self.parsed_trajectory[0])
-        #print(trajectory)
 
-        """#ospy.loginfo(trajectory)
-        us = raw_input("enter to continue")
 
-        rate = rospy.Rate(100)
-        velocity_msg = KinovaVelocity()
-        velocity_msg.joint1 = 3
-        velocity_msg.joint2 = 3
-        velocity_msg.joint3 = 3
-        velocity_msg.joint4 = 3
-        velocity_msg.joint5 = 3
-        velocity_msg.joint6 = 3
-        velocity_msg.joint7 = 3
-
-        #for i in range(100):
-        #    # Loop through the 7 joints
-        #    self.velocity_pub.publish(velocity_msg)
-        #    rospy.loginfo("Sent vel command")
-        #    rate.sleep()"""
 
     def state_error(self):
         # Compares the target state to the current state and returns the error
