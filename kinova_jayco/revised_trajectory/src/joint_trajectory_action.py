@@ -12,6 +12,7 @@ import control_msgs.msg
 from trajectory_msgs.msg import JointTrajectory
 from kinova_msgs.msg import JointVelocity as KinovaVelocity
 from kinova_msgs.msg import JointAngles
+import kinova_msgs.msg
 from copy import deepcopy
 from math import pi
 from numpy import sign, all, full, isclose, argmax, array, absolute
@@ -34,6 +35,13 @@ class JointTrajectoryAction(object):
         self.velocity_pub = rospy.Publisher('/j2s7s300_driver/in/joint_velocity', KinovaVelocity, queue_size=2)
         # Create the joint state subscriber
         self.state_subscriber = rospy.Subscriber('/j2s7s300_driver/out/joint_angles', JointAngles, self.state_cb)
+        # Set up action server to directly send joint angles to the arm 
+        action_address = '/j2s7s300_driver/joints_action/joint_angles'
+        self.joint_client = actionlib.SimpleActionClient(action_address,
+                                            kinova_msgs.msg.ArmJointAnglesAction)
+        self.joint_client.wait_for_server()
+
+    
         
 
         for i in range(10):
@@ -51,7 +59,7 @@ class JointTrajectoryAction(object):
         self.last_state_update_time = rospy.Time.now()
 
         self.index = 1
-        self.goal_contsraint = .01 # Tolerance from the goal allowed in degrees
+        self.goal_contsraint = .05 # Tolerance from the goal allowed in degrees
 
 
       
@@ -65,7 +73,7 @@ class JointTrajectoryAction(object):
         rospy.loginfo("Successfully parsed goal")
         rospy.loginfo(self.current_state)
 
-        rate = rospy.Rate(50)
+        rate = rospy.Rate(75)
 
 
         use_parsed_trajectory = False
@@ -99,8 +107,7 @@ class JointTrajectoryAction(object):
                     # Here we need to update the parsed trajectory based on the diffence in positions, scaled by the biggest diff
                     index_max = argmax(abs_error)
                     velocity_out = array(error)/abs_error[index_max]
-                    print("Velocity out: ", velocity_out)
-                    multiplier = .2
+                    multiplier = .15
                     velocity_msg = KinovaVelocity()
                     velocity_msg.joint1 = velocity_out[0] * 180/pi*multiplier
                     velocity_msg.joint2 = velocity_out[1] * 180/pi*multiplier
@@ -110,45 +117,6 @@ class JointTrajectoryAction(object):
                     velocity_msg.joint6 = velocity_out[5] * 180/pi*multiplier
                     velocity_msg.joint7 = velocity_out[6] * 180/pi*multiplier
             
-                
-                """
-                 # For joint1
-                if error[0] < self.goal_contsraint and error[0] > -self.goal_contsraint:
-                    # Joint 1 within range
-                    velocity_msg.joint1 = 0.0 
-                    joint_status[0] = True
-                    rospy.loginfo("Joint 1 in range")
-                if error[1] < self.goal_contsraint and error[1] > -self.goal_contsraint:
-                    # Joint 1 within range
-                    velocity_msg.joint2 = 0.0 
-                    joint_status[1] = True
-                    rospy.loginfo("Joint 2 in range")
-                if error[2] < self.goal_contsraint and error[2] > -self.goal_contsraint:
-                    # Joint 1 within range
-                    velocity_msg.joint3 = 0.0
-                    joint_status[2] = True
-                    rospy.loginfo("Joint 3 in range")
-                if error[3] < self.goal_contsraint and error[3] > -self.goal_contsraint:
-                    # Joint 1 within range
-                    velocity_msg.joint4 = 0.0 
-                    joint_status[3] = True
-                    rospy.loginfo("Joint 4 in range")
-                if error[4] < self.goal_contsraint and error[4] > -self.goal_contsraint:
-                    velocity_msg.joint5 = 0.0 
-                    joint_status[4] = True 
-                    rospy.loginfo("Joint 5 in range")
-                if error[5] < self.goal_contsraint and error[5] > -self.goal_contsraint:
-                    # Joint 1 within range
-                    velocity_msg.joint6 = 0.0 
-                    joint_status[5] = True
-                    rospy.loginfo("Joint 6 in range")
-                if error[6] < self.goal_contsraint and error[6] > -self.goal_contsraint:
-                    # Joint 1 within range
-                    velocity_msg.joint7 = 0.0 
-                    joint_status[6] = True
-                    rospy.loginfo("Joint 7 in range")
-
-                """
                 # For joint1
                 if joint_status[0] == True or ((isclose(direction[0], 1.0) and error[0] < self.goal_contsraint) or (isclose(direction[0], -1.0) and error[0] > -self.goal_contsraint)):
                     # Joint 1 within range
@@ -187,9 +155,10 @@ class JointTrajectoryAction(object):
                     rospy.loginfo("Joint 7 in range")
             
                 #print("velocity msg: ", velocity_msg)
-                #print(joint_status)
+                print(joint_status)
                 all_zeros = all(joint_status)
                 print("all_zeros: ", all_zeros)
+                print(velocity_msg)
                 self.velocity_pub.publish(velocity_msg)
                 if all_zeros:
                     print("All zeros!")
@@ -200,8 +169,34 @@ class JointTrajectoryAction(object):
                 # Wait a small period of time before sending next joint velocity command
                 rate.sleep()
             
+        goal = kinova_msgs.msg.ArmJointAnglesGoal()
 
+        goal.angles.joint1 = self.parsed_positions[self.index-1][0]
+        goal.angles.joint2 = self.parsed_positions[self.index-1][1]
+        goal.angles.joint3 = self.parsed_positions[self.index-1][2]
+        goal.angles.joint4 = self.parsed_positions[self.index-1][3]
+        goal.angles.joint5 = self.parsed_positions[self.index-1][4]
+        goal.angles.joint6 = self.parsed_positions[self.index-1][5]
+        goal.angles.joint7 = self.parsed_positions[self.index-1][6]
+        self.joint_client.send_goal(goal)
+        if self.joint_client.wait_for_result(rospy.Duration(2.0)):
+            rospy.loginfo(self.joint_client.get_result())
+        else:
+            
+            self.joint_client.cancel_all_goals()
+            rospy.logerr("Did not make it to target")
+            
+        """
+        goal = kinova_msgs.msg.ArmJointAnglesGoal()
 
+        goal.angles.joint1 = angle_set[0]
+        goal.angles.joint2 = angle_set[1]
+        goal.angles.joint3 = angle_set[2]
+        goal.angles.joint4 = angle_set[3]
+        goal.angles.joint5 = angle_set[4]
+        goal.angles.joint6 = angle_set[5]
+        goal.angles.joint7 = angle_set[6]
+        """
 
         print("final error: ", error)
     
@@ -265,6 +260,34 @@ class JointTrajectoryAction(object):
         #rospy.loginfo(state)
         self.current_state = state
         self.last_state_update_time = rospy.Time.now()
+
+    def send_joint_angle_target(self, joint_target = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], time_allowed = 5.0):
+        """ Passes a joint angle target to MoveIT! to generate a safe JointTrajectory. Validates path with validate_move(), then sends to the robot via the Kinova action server.
+
+        Args:
+            joint_target (1x7 list): Target joint positions for all 7 joints.
+                (default is [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+            time_allowed (foat): Amount of time allowed in seconds per individual move before timeout.
+                (default is 5.0 seconds) 
+        Returns:
+            none
+        """
+                
+        self.current_joint_values = self.move_group.get_current_joint_values()
+        # Set the target and plan 
+        self.move_group.set_joint_value_target(joint_target)
+        plan = self.move_group.plan()
+        plan.joint_trajectory
+        self.client_trajectory.send_goal(plan.joint_trajectory)
+
+        if self.client_trajectory.wait_for_result(rospy.Duration(200.0)):
+            rospy.loginfo("THIS WORKEEEDDDD")
+            
+        else:
+            self.client_trajectory.cancel_all_goals()
+            rospy.logerr("AHHH NOOOO")
+        
+        
         
         
             

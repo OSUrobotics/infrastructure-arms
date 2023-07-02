@@ -70,55 +70,55 @@ class DoorArmController():
 
         self.move_group.allow_replanning(1)      
 
-        ## Add constraint areas 
-        self.add_constraint_box(pos=[.475,0,1], dim=[.1,2,2], name="door")
+
+        # Add constraint areas 
+        self.add_constraint_box(pos=[.63,0,1], dim=[.1,2,2], name="door")
         self.add_constraint_box(pos=[0,0,-.05], dim=[2,2,.1], name="table")
         self.add_constraint_box(pos=[-.53,.762,.5], dim=[.1,.25,1], orient=[0.0,0.0,1.0,.5], name="rear_left_camera")
         self.add_constraint_box(pos=[-.53,-.762,.5], dim=[.1,.25,1], orient=[0.0,0.0,1.0,-.5], name="rear_right_camera")
         self.add_constraint_box(pos=[.475,0,1.1], dim=[.2,2,.1], orient=[0.0,1.0,0.0,-.1], name="overhead_light")
-
+        self.add_constraint_box(pos=[.46,-0.09,.28], dim=[.07,.07,.25], name="handle")
         rospy.loginfo("Added scene constraints.")
 
+
         rospy.sleep(3)
-        #how much to round joint angles
-
-
-
         self.joint_angle_rounded = 2 
 
+        # Move to start position          
+        self.move_group.set_joint_value_target([8.539976244420286, 3.744075592256784, 2.8460321063356004, 5.4660119035519665, 4.504153751590303, 4.925874364952057, 0.24287098699616808])
+        self.move_group.plan()
+        self.move_group.go(wait=True)
+        self.move_group.stop()
+        self.move_group.clear_pose_targets()
+        self.current_joint_values = self.move_group.get_current_joint_values() # How to get current joint positions
+        print("Joint angles", self.current_joint_values)
 
-        # Door starting joint angles
-        # 11.331234850300119, 2.478875668967935, 2.573784604947852, 0.6257295386642381, 4.493317349114771, 1.1381729982464674, 9.406469260907302
-        # Start 11.382873543836755, 2.5082958758461493, 2.681565397424449, 0.96689885011491, 4.288335704224136, 1.1702385230354577, 9.578634103265438
+        # Go to standard pull position
+        self.target_pose = self.move_group.get_current_pose()
+        self.target_pose = self.generate_pose([.37, .3, .31], [90, 0, 50])
+        self.move_group.set_pose_target(self.target_pose)
+        out = self.move_group.go(wait=True)
+        self.move_group.stop()
+        self.move_group.clear_pose_targets()
 
-        #Other orientation 10.910539553958046, 1.5613200006880674, -1.163064233374893, 0.5636220920405547, 7.280219023451234, 2.8401912614328384, 7.002218561476695
 
-        # Helpful functions http://docs.ros.org/en/jade/api/moveit_commander/html/classmoveit__commander_1_1move__group_1_1MoveGroupCommander.html
-        #self.current_joint_values = self.move_group.get_current_joint_values() # How to get current joint positions
-        #print("Joint angles", self.current_joint_values)
-        ##self.current_pose = self.move_group.get_current_pose() # How to get current pose
-        #rint("Old Pose:", self.current_pose)
-        
-        # Go to door starting position
-        ##self.move_group.set_joint_value_target([10.910539553958046, 1.5613200006880674, -1.163064233374893, 0.5636220920405547, 7.280219023451234, 2.8401912614328384, 7.002218561476695])
-        #out = self.move_group.go(wait=True)
-        #self.move_group.stop()
-        # Get current pose
-        self.current_pose = self.move_group.get_current_pose() # How to get current pose
-        print(self.current_pose)
-        #q_down = quaternion_from_euler(0,0,-.2)
-        #current_q = [self.current_pose.pose.orientation.x, self.current_pose.pose.orientation.y, self.current_pose.pose.orientation.z, self.current_pose.pose.orientation.w]
-        #q_new = quaternion_multiply(q_down, current_q)
 
-        #self.current_pose.pose.orientation.x = q_new[0]
-        #self.current_pose.pose.orientation.y = q_new[1]
-        #self.current_pose.pose.orientation.z = q_new[2]
-        #self.current_pose.pose.orientation.w = q_new[3]
-        #self.move_group.set_pose_target(self.current_pose)
-        #out = self.move_group.go(wait=True)
-        #self.move_group.stop()
-        #self.move_group.clear_pose_targets()
-        #self.current_pose = self.move_group.get_current_pose() # How to get current pose
+        rospy.signal_shutdown("done")
+        hey = raw_input("stop here")
+
+        self.current_pose = self.move_group.get_current_pose()
+        print("Current pose: ", self.current_pose)
+        self.current_pose.pose.position.y += .1
+        self.move_group.set_pose_target(self.current_pose)
+        out = self.move_group.go(wait=True)
+        self.move_group.stop()
+        self.move_group.clear_pose_targets()
+        self.current_pose = self.move_group.get_current_pose()
+        print("Current pose: ", self.current_pose)
+
+
+        rospy.signal_shutdown("done")
+        hey = raw_input("Enter to move to cartesian pull position")
 
 
         self.current_pose.pose.position.x -= 0
@@ -215,6 +215,19 @@ class DoorArmController():
     def modify_arm_pose_cartesian(self, ):
         # 
         print("bro")
+
+    def generate_pose(self, position, orientation):
+        quat = quaternion_from_euler(math.radians(orientation[0]),math.radians(orientation[1]),math.radians(orientation[2]))
+        temp_pose = Pose()
+        temp_pose.position.x = position[0]
+        temp_pose.position.y = position[1]
+        temp_pose.position.z = position[2]
+        temp_pose.orientation.x = quat[0]
+        temp_pose.orientation.y = quat[1]
+        temp_pose.orientation.z = quat[2]
+        temp_pose.orientation.w = quat[3]
+
+        return temp_pose
 
 
     def add_constraint_box(self, name, dim, pos, orient=[0.0,0.0,1.0,0.0]):
