@@ -198,8 +198,8 @@ class ExampleVisionConfiguration:
         # Set the resolution to be 640 x 480 on the color sensor
         # You have to specify all parameters else the call will return an INVALID_PARAM error
         req.input.sensor = Sensor.SENSOR_COLOR
-        req.input.resolution = Resolution.RESOLUTION_1280x720
-        req.input.bit_rate = BitRate.BITRATE_10_MBPS
+        req.input.resolution = Resolution.RESOLUTION_1920x1080
+        req.input.bit_rate = BitRate.BITRATE_25_MBPS
         req.input.frame_rate = FrameRate.FRAMERATE_30_FPS
         try:
             self.set_sensor_settings(req)

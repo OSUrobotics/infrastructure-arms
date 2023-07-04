@@ -16,7 +16,7 @@ roslaunch j2s7s300_moveit_config j2s7s300_demo.launch
 roslaunch kortex_driver kortex_driver.launch gripper:=robotiq_2f_85 ip_address:=192.168.2.200
 
 for recording joint states /my_gen3/base_feedback/joint_state
-roslaunch infrastructure_flexbe_behaviors start_test.launch collect_data:=true name:=ahhh2 video:=true robot_jointState_topic:=/my_gen3/base_feedback/joint_state
+roslaunch infrastructure_flexbe_behaviors start_test.launch collect_data:=true name:=grasp_dataset_x_trans_top video:=true robot_jointState_topic:=/my_gen3/base_feedback/joint_state
 
 roslaunch kinova_vision kinova_vision_rgbd.launch device:=192.168.2.200
 
