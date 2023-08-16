@@ -84,20 +84,18 @@ class DrawerArmController():
         self.add_constraint_box(pos=[-.53,-.762,.5], dim=[.1,.25,1], orient=[0.0,0.0,1.0,-.5], name="rear_right_camera")
         self.add_constraint_box(pos=[.475,0,1.1], dim=[.2,2,.1], orient=[0.0,1.0,0.0,-.1], name="overhead_light")
         self.add_constraint_box(pos=[.46,-0.09,.28], dim=[0.07, 0.25, 0.07], name="handle")
+        # knob: radius: 3.004, height: 2 + 3/4 + 0.10
         rospy.loginfo("Added scene constraints.")
+
+        # Start pose
+        self.start_pose = [8.539976244420286, 3.744075592256784, 2.8460321063356004, 5.4660119035519665, 4.504153751590303, 4.925874364952057, 0.24287098699616808]
 
 
         rospy.sleep(3)
         self.joint_angle_rounded = 2 
 
         # Move to start position          
-        self.move_group.set_joint_value_target([8.539976244420286, 3.744075592256784, 2.8460321063356004, 5.4660119035519665, 4.504153751590303, 4.925874364952057, 0.24287098699616808])
-        self.move_group.plan()
-        self.move_group.go(wait=True)
-        self.move_group.stop()
-        self.move_group.clear_pose_targets()
-        self.current_joint_values = self.move_group.get_current_joint_values() # How to get current joint positions
-        print("Joint angles", self.current_joint_values)
+        self.run_arm_to_start_pose()
 
         # Go to standard pull position
         self.current_pose = self.move_group.get_current_pose()
@@ -148,7 +146,26 @@ class DrawerArmController():
         self.move_group.stop()
         self.move_group.clear_pose_targets()
 
-    def run_arm_to_target_pose(self):
+
+    def run_arm_to_joint_orientation(self, joint_angles: list) -> None:
+        """ Run the arm to a specific joint orientation """
+        self.move_group.set_joint_value_target(joint_angles)
+        self.move_group.plan()
+        self.move_group.go(wait=True)
+        self.move_group.stop()
+        self.move_group.clear_pose_targets()
+        self.current_joint_values = self.move_group.get_current_joint_values() # How to get current joint positions
+        print("Joint angles", self.current_joint_values)
+        return
+    
+
+    def run_arm_to_start_pose(self) -> None:
+        """ Run the arm to the starting pose """
+        return self.run_arm_to_joint_orientation(self.start_pose)
+
+
+    def run_arm_to_target_pose(self) -> None:
+        """ Run the end effector to a specific position and orientation """
         self.move_group.set_pose_target(self.target_pose)
         out = self.move_group.go(wait=True)
         self.move_group.stop()
