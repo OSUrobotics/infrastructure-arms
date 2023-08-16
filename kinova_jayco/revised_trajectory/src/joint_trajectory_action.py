@@ -16,6 +16,7 @@ import kinova_msgs.msg
 from copy import deepcopy
 from math import pi
 from numpy import sign, all, full, isclose, argmax, array, absolute
+import numpy as np
 
 
 
@@ -73,7 +74,7 @@ class JointTrajectoryAction(object):
         rospy.loginfo("Successfully parsed goal")
         rospy.loginfo(self.current_state)
 
-        rate = rospy.Rate(75)
+        rate = rospy.Rate(100)
 
 
         use_parsed_trajectory = False
@@ -107,7 +108,7 @@ class JointTrajectoryAction(object):
                     # Here we need to update the parsed trajectory based on the diffence in positions, scaled by the biggest diff
                     index_max = argmax(abs_error)
                     velocity_out = array(error)/abs_error[index_max]
-                    multiplier = .15
+                    multiplier = 0.1
                     velocity_msg = KinovaVelocity()
                     velocity_msg.joint1 = velocity_out[0] * 180/pi*multiplier
                     velocity_msg.joint2 = velocity_out[1] * 180/pi*multiplier
@@ -156,12 +157,13 @@ class JointTrajectoryAction(object):
             
                 #print("velocity msg: ", velocity_msg)
                 print(joint_status)
-                all_zeros = all(joint_status)
-                print("all_zeros: ", all_zeros)
+                num_there = np.count_nonzero(joint_status == True)
+                #all_zeros = all(joint_status)
+                #print("all_zeros: ", all_zeros)
                 print(velocity_msg)
                 self.velocity_pub.publish(velocity_msg)
-                if all_zeros:
-                    print("All zeros!")
+                if num_there > 5:
+                    print("At least 6 joint at target.")
                     
                     self.index += 1
                     break
