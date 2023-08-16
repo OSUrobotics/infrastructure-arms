@@ -27,7 +27,7 @@ class DrawerArmController():
     def __init__(self):
         # Joint angles path
         __here__ = os.path.dirname(__file__)
-        darwer_arm_presets: dict = json.load(f'{__here__}/joint_angles/drawer.json')
+        self.darwer_arm_presets: dict = json.load(f'{__here__}/joint_angles/drawer.json')
 
         #initializing actionservers
         self.start_arm = actionlib.SimpleActionServer("start_arm_sequence", StageAction, self.start_arm_sequence_callback, False) 
@@ -88,7 +88,15 @@ class DrawerArmController():
         rospy.loginfo("Added scene constraints.")
 
         # Start pose
-        self.start_pose = [8.539976244420286, 3.744075592256784, 2.8460321063356004, 5.4660119035519665, 4.504153751590303, 4.925874364952057, 0.24287098699616808]
+        self.start_pose = [
+            self.drawer_arm_presets["start_position"]["joint1"],
+            self.drawer_arm_presets["start_position"]["joint2"],
+            self.drawer_arm_presets["start_position"]["joint3"],
+            self.drawer_arm_presets["start_position"]["joint4"],
+            self.drawer_arm_presets["start_position"]["joint5"],
+            self.drawer_arm_presets["start_position"]["joint6"],
+            self.drawer_arm_presets["start_position"]["joint7"],
+        ]
 
 
         rospy.sleep(3)
@@ -170,8 +178,9 @@ class DrawerArmController():
         out = self.move_group.go(wait=True)
         self.move_group.stop()
         self.move_group.clear_pose_targets()
-        print("Reached target.")
+        print(f"Reached target: {self.target_pose}")
         return
+    
         """
         self.current_pose = self.move_group.get_current_pose() # How to get current pose
         q_down = quaternion_from_euler(0,0,-.5)
@@ -260,7 +269,7 @@ class DrawerArmController():
         return temp_pose
 
 
-    def add_constraint_box(self, name, dim, pos, orient=[0.0,0.0,1.0,0.0]):
+    def add_constraint_box(self, name, dim, pos, orient=[0.0,0.0,1.0,0.0]) -> bool:
         box_pose = PoseStamped()
         box_pose.header.frame_id = "world"
         
@@ -274,22 +283,53 @@ class DrawerArmController():
         box_name = name
         self.scene.add_box(box_name, box_pose, size=(dim[0], dim[1], dim[2]))
 
-        start = rospy.get_time()
-        seconds = rospy.get_time()
-        while (seconds - start < 5) and not rospy.is_shutdown():
-            # Test if the box is in the scene.
-            # Note that attaching the box will remove it from known_objects
-            is_known = box_name in self.scene.get_known_object_names()
-            # Test if we are in the expected state
-            if is_known == True:
+        if self._check_object_presence(box_name):
+            return True
+        else:
+            return False
+    
+    def add_constraint_cylinder(self, cyl) -> bool:
+        cyl_pose = PoseStamped()
+        cyl_pose.header.frame_id = "world"
+
+        cyl_pose.pose.position.x = cyl["position"]["x"]
+        cyl_pose.pose.position.y = cyl["position"]["y"]
+        cyl_pose.pose.position.z = cyl["position"]["z"]
+        cyl_pose.pose.orientation.x = cyl["orientation"]["x"]
+        cyl_pose.pose.orientation.y = cyl["orientation"]["y"]
+        cyl_pose.pose.orientation.z = cyl["orientation"]["z"]
+        cyl_pose.pose.orientation.w = cyl["orientation"]["w"]
+        cyl_name = cyl["name"]
+        cyl_height = cyl["dimensions"]["height"]
+        cyl_radius = cyl["dimensions"]["radius"]
+
+        self.scene.add_cylinder(cyl_name, cyl_pose, cyl_height, cyl_radius)
+
+        if self._check_object_presence(cyl_name):
+            return True
+        else:
+            return False
+
+
+    def _check_object_presence(self, obj_name: str) -> bool:
+        """ Check to see if the constraint object was successfully added """
+        start_time = time_now = rospy.get_time()
+        while (time_now - start_time < 5) and not rospy.is_shutdown():
+            # Test if the object is in the scene
+            # NOTE: attaching teh box will remove it from known_objects
+            is_known = obj_name in self.scene.get_known_object_names()
+            # See if we are in the expected state
+            if is_known:
+                print(f"Added constraint {obj_name}")
                 return True
-                print("added box")
-            # Sleep so that we give other threads time on the processor
+            
+            # sleep, giving other threads time on the processor
             rospy.sleep(0.1)
-            seconds = rospy.get_time()
-            # If we exited the while loop without returning then we timed out
-        print("failed adding box")
+            time_now = rospy.get_time()
+        # If we exited teh loop, then we timed out
+        print(f"Failed adding constraint {obj_name}")
         return False
+
 
 
 
