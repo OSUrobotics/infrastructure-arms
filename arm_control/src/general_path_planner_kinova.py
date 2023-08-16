@@ -3,7 +3,7 @@
 # Author: Ryan Roberts
 # Email: roberyan@oregonstate.edu
 # Date: 10/21
-# 
+#
 # script for capturing/executing joint poses on kinova arm either virtually or in real world.
 #
 # Modified to work within another node. (removed node initialization)
@@ -27,22 +27,21 @@ from moveit_msgs.msg import DisplayTrajectory
 from moveit_msgs.srv import GetPlanningScene, ApplyPlanningScene
 
 
-class MoveRobot():
-
+class MoveRobot:
     def __init__(self, mode, environment, third_arg, csv_out=None):
 
         # file paths
         self.main_file_location = os.path.dirname(os.path.abspath(inspect.stack()[0][1]))
         self.joint_angles_dir = self.main_file_location + "/joint_angles/"
-        if(not os.path.exists(self.joint_angles_dir)):
+        if not os.path.exists(self.joint_angles_dir):
             os.makedirs(self.joint_angles_dir)
 
         try:
             self.mode = int(mode)
         except Exception:
             raise IOError("invalid first argument (must be 0 or 1)")
-        #read joint angles
-        if(self.mode == 0):
+        # read joint angles
+        if self.mode == 0:
             self.csv_name = self.joint_angles_dir + third_arg
             self.joint_poses = []
             try:
@@ -50,18 +49,18 @@ class MoveRobot():
                 f.close()
             except Exception:
                 raise IOError("invalid csv file name. Cannot find csv file joint_angles directory")
-        #write joint angles
-        elif(self.mode == 1):
+        # write joint angles
+        elif self.mode == 1:
             self.csv_name = self.joint_angles_dir + csv_out
             try:
                 self.run_custom = int(third_arg)
             except Exception:
                 raise IOError("invalid second argument (must be 0 or 1)")
-            if(self.run_custom < 0 or self.run_custom > 1):
+            if self.run_custom < 0 or self.run_custom > 1:
                 raise IOError("invalid second argument (must be 0 or 1)")
         else:
             raise IOError("invalid first argument (must be 0 or 1)")
-        
+
         # Initialize moveit commander and ros node for moveit
         try:
             self.environment = int(environment)
@@ -70,23 +69,23 @@ class MoveRobot():
 
         # To read from redirected ROS Topic (Gazebo launch use)
         if self.environment == 2:
-            joint_state_topic = ['joint_states:=/j2s7s300/joint_states']
+            joint_state_topic = ["joint_states:=/j2s7s300/joint_states"]
             moveit_commander.roscpp_initialize(joint_state_topic)
-            #rospy.init_node('move_kinova', anonymous=False)
+            # rospy.init_node('move_kinova', anonymous=False)
             moveit_commander.roscpp_initialize(sys.argv)
-        
+
         # For real robot launch use
         elif self.environment == 0:
-            joint_state_topic = ['joint_states:=/j2s7s300_driver/out/joint_state']
+            joint_state_topic = ["joint_states:=/j2s7s300_driver/out/joint_state"]
             moveit_commander.roscpp_initialize(joint_state_topic)
-            #rospy.init_node('move_kinova', anonymous=False)
+            # rospy.init_node('move_kinova', anonymous=False)
             moveit_commander.roscpp_initialize(sys.argv)
-        
+
         # for virtual robot launch use
         elif self.environment == 1:
             moveit_commander.roscpp_initialize(sys.argv)
-            #rospy.init_node('move_kinova', anonymous=True)
-        
+            # rospy.init_node('move_kinova', anonymous=True)
+
         else:
             raise IOError("invalid second argument (must be 0, 1, or 2)")
 
@@ -105,9 +104,9 @@ class MoveRobot():
         rospy.wait_for_service("/apply_planning_scene", 10.0)
         rospy.wait_for_service("/get_planning_scene", 10.0)
 
-        self.apply_scene = rospy.ServiceProxy('/apply_planning_scene', ApplyPlanningScene)
-        self.get_scene = rospy.ServiceProxy('/get_planning_scene', GetPlanningScene)
-        #rospy.sleep(2)
+        self.apply_scene = rospy.ServiceProxy("/apply_planning_scene", ApplyPlanningScene)
+        self.get_scene = rospy.ServiceProxy("/get_planning_scene", GetPlanningScene)
+        # rospy.sleep(2)
 
         # To see the trajectory
         self.disp = DisplayTrajectory()
@@ -118,8 +117,8 @@ class MoveRobot():
 
         self.move_group.allow_replanning(1)
 
-        #how much to round joint angles
-        self.joint_angle_rounded = 2 
+        # how much to round joint angles
+        self.joint_angle_rounded = 2
 
     def set_planner_type(self, planner_name):
         if planner_name == "RRT":
@@ -132,7 +131,7 @@ class MoveRobot():
     def go_to_goal(self, ee_pose):
         """
         moves robot to current end-effector position
-        Input: list of euler or quaternion values for end-effector 
+        Input: list of euler or quaternion values for end-effector
         """
         pose_goal = Pose()
         pose_goal.position.x = ee_pose[0]
@@ -140,8 +139,7 @@ class MoveRobot():
         pose_goal.position.z = ee_pose[2]
 
         if len(ee_pose) == 6:
-            quat = quaternion_from_euler(math.radians(ee_pose[3]), math.radians(ee_pose[4]),
-                                                            math.radians(ee_pose[5]))
+            quat = quaternion_from_euler(math.radians(ee_pose[3]), math.radians(ee_pose[4]), math.radians(ee_pose[5]))
             pose_goal.orientation.x = quat[0]
             pose_goal.orientation.y = quat[1]
             pose_goal.orientation.z = quat[2]
@@ -155,16 +153,15 @@ class MoveRobot():
 
         self.move_group.set_pose_target(pose_goal)
         self.move_group.set_planning_time(20)
-        #rospy.sleep(2)
+        # rospy.sleep(2)
         self.move_group.go(wait=True)
         self.move_group.stop()
 
         self.move_group.clear_pose_targets()
-        #rospy.sleep(2)
+        # rospy.sleep(2)
 
     def display_trajectory(self):
-        self.disp_pub = rospy.Publisher("/move_group/display_planned_path", DisplayTrajectory,
-                                        queue_size=20)
+        self.disp_pub = rospy.Publisher("/move_group/display_planned_path", DisplayTrajectory, queue_size=20)
         self.disp.trajectory.append(self.plan)
         print(self.disp.trajectory)
         self.disp_pub.publish(self.disp)
@@ -182,7 +179,7 @@ class MoveRobot():
             self.move_gripper.go(wait=True)
             self.move_gripper.stop()
             self.move_gripper.clear_pose_targets()
-            #rospy.sleep(2)
+            # rospy.sleep(2)
             return True
         except:
             return False
@@ -191,16 +188,16 @@ class MoveRobot():
         """
         moves arm joints to desired joint states.
         Input: list of joint values for each arm joint (list size of 7) or name of pre-determined state
-        
+
         current possible state names: (can add more in j2s7s300.srdf)
             - joint_values = "Home"
             - joint_values = "Vertical"
         Output: boolean stating whether path completion was successful (True) or not (False)
         """
         try:
-            if(joint_values == "Home"):
+            if joint_values == "Home":
                 self.move_group.set_named_target("Home")
-            elif(joint_values == "Vertical"):
+            elif joint_values == "Vertical":
                 self.move_group.set_named_target("Vertical")
             else:
                 arm_states = JointState()
@@ -209,11 +206,11 @@ class MoveRobot():
             self.move_group.go(wait=True)
             self.move_group.stop()
             self.move_group.clear_pose_targets()
-            #rospy.sleep(2)
+            # rospy.sleep(2)
             return True
         except:
             return False
-    
+
     def build_env(self, path):
         """
         spawn collision models.
@@ -238,7 +235,7 @@ class MoveRobot():
         gripper_values = self.move_gripper.get_current_joint_values()
         for i in range(len(gripper_values)):
             self.current_joint_values.append(gripper_values[i])
-        #round joint values
+        # round joint values
         for i in range(len(self.current_joint_values)):
             self.current_joint_values[i] = round(float(self.current_joint_values[i]), self.joint_angle_rounded)
 
@@ -276,10 +273,22 @@ class MoveRobot():
             self.capture_joint_pose()
             current_arm_joint_angles = self.current_joint_values[:7]
             current_gripper_joint_angles = self.current_joint_values[7:10]
-            #compare current and next joint lists. If same, don't set new goal, otherwise set and go to new joint goals
-            if(not (functools.reduce(lambda x,y : x and y, map(lambda p,q : p == q, current_arm_joint_angles,next_arm_joint_angles), True))):
+            # compare current and next joint lists. If same, don't set new goal, otherwise set and go to new joint goals
+            if not (
+                functools.reduce(
+                    lambda x, y: x and y,
+                    map(lambda p, q: p == q, current_arm_joint_angles, next_arm_joint_angles),
+                    True,
+                )
+            ):
                 self.go_to_arm_joint_state(next_arm_joint_angles)
-            if(not (functools.reduce(lambda x,y : x and y, map(lambda p,q : p == q, current_gripper_joint_angles,next_gripper_joint_angles), True))):
+            if not (
+                functools.reduce(
+                    lambda x, y: x and y,
+                    map(lambda p, q: p == q, current_gripper_joint_angles, next_gripper_joint_angles),
+                    True,
+                )
+            ):
                 self.go_to_finger_joint_state(next_gripper_joint_angles)
         self.joint_poses = []
 
@@ -290,31 +299,34 @@ class MoveRobot():
 
         self.set_planner_type("RRT")
 
-        #run loaded joint angles
-        if(self.mode == 0):
+        # run loaded joint angles
+        if self.mode == 0:
             self.execute_joint_poses()
-        
-        #record joint angles
-        elif(self.mode == 1):
 
-            if(self.run_custom):
+        # record joint angles
+        elif self.mode == 1:
+
+            if self.run_custom:
                 # write custom path here
-                rospy.loginfo('Running custom path')
+                rospy.loginfo("Running custom path")
 
-            #capture joint poses on command
+            # capture joint poses on command
             else:
-                while(True):
-                    user_in = raw_input("Enter 0 to record current joint angles. Enter 1 to exit (saves automatically): ")
-                    if(user_in == "1"):
+                while True:
+                    user_in = raw_input(
+                        "Enter 0 to record current joint angles. Enter 1 to exit (saves automatically): "
+                    )
+                    if user_in == "1":
                         break
-                    elif(user_in == "0"):
+                    elif user_in == "0":
                         self.write_joint_pose()
                     else:
                         print("Invalid user input")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     """
-    First arg: mode 
+    First arg: mode
         - read joint poses (0)
         - capture joint poses (1)
     Second arg: environment
@@ -322,10 +334,10 @@ if __name__ == '__main__':
         - Virtual robot launch (1)
         - redirected ROS topic (i.e. gazebo launch) (2)
     read joint poses:
-        third arg: 
+        third arg:
             - name of csv file containing joint poses
     capture joint poses:
-        third arg: 
+        third arg:
             - move robot (in rviz or real world w/ controller) and capture joint angles on command (0)
             - run custom code (1)
         fourth arg:
@@ -334,10 +346,10 @@ if __name__ == '__main__':
         - gripper joint values will return as 0.0 until they are actually moved for the first time
         - all joint angle files are read/written from the joint_angles folder
     """
-    if(len(sys.argv) == 4):
+    if len(sys.argv) == 4:
         controller = MoveRobot(sys.argv[1], sys.argv[2], sys.argv[3])
         controller.Run()
-    elif(len(sys.argv) == 5):
+    elif len(sys.argv) == 5:
         controller = MoveRobot(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
         controller.Run()
     else:

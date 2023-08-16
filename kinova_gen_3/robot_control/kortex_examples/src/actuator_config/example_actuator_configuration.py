@@ -4,7 +4,7 @@
 #
 # Copyright (c) 2019 Kinova inc. All rights reserved.
 #
-# This software may be modified and distributed 
+# This software may be modified and distributed
 # under the terms of the BSD 3-Clause license.
 #
 # Refer to the LICENSE file for details.
@@ -17,32 +17,37 @@ from std_msgs.msg import Bool
 from kortex_driver.srv import *
 from kortex_driver.msg import *
 
+
 class ExampleActuatorConfiguration:
     def __init__(self):
         try:
-            rospy.init_node('example_actuator_configuration_python')
+            rospy.init_node("example_actuator_configuration_python")
 
             # Get node params
-            self.robot_name = rospy.get_param('~robot_name', "my_gen3")
-            self.device_id = rospy.get_param('~device_id', 1)
+            self.robot_name = rospy.get_param("~robot_name", "my_gen3")
+            self.device_id = rospy.get_param("~device_id", 1)
             rospy.loginfo("Using robot_name " + self.robot_name + " and device_id " + str(self.device_id))
 
             # Init the services
-            read_all_devices_full_name = '/' + self.robot_name + '/device_manager/read_all_devices'
+            read_all_devices_full_name = "/" + self.robot_name + "/device_manager/read_all_devices"
             rospy.wait_for_service(read_all_devices_full_name, 0.5)
             self.read_all_devices = rospy.ServiceProxy(read_all_devices_full_name, ReadAllDevices)
 
-            set_device_id_full_name = '/' + self.robot_name + '/actuator_config/set_device_id'
+            set_device_id_full_name = "/" + self.robot_name + "/actuator_config/set_device_id"
             rospy.wait_for_service(set_device_id_full_name, 0.5)
             self.set_device_id = rospy.ServiceProxy(set_device_id_full_name, SetDeviceID)
 
-            clear_faults_full_name = '/' + self.robot_name + '/actuator_config/clear_faults'
+            clear_faults_full_name = "/" + self.robot_name + "/actuator_config/clear_faults"
             rospy.wait_for_service(clear_faults_full_name, 0.5)
             self.clear_faults = rospy.ServiceProxy(clear_faults_full_name, ActuatorConfig_ClearFaults)
 
-            get_control_loop_parameters_full_name = '/' + self.robot_name + '/actuator_config/get_control_loop_parameters'
+            get_control_loop_parameters_full_name = (
+                "/" + self.robot_name + "/actuator_config/get_control_loop_parameters"
+            )
             rospy.wait_for_service(get_control_loop_parameters_full_name, 0.5)
-            self.get_control_loop_parameters = rospy.ServiceProxy(get_control_loop_parameters_full_name, GetControlLoopParameters)
+            self.get_control_loop_parameters = rospy.ServiceProxy(
+                get_control_loop_parameters_full_name, GetControlLoopParameters
+            )
         except:
             self.is_init_success = False
         else:
@@ -64,7 +69,7 @@ class ExampleActuatorConfiguration:
         elif control_loop == ControlLoopSelection.MOTOR_CURRENT:
             return "MOTOR CURRENT"
         else:
-            return "UNKNOWN CONTROL LOOP TYPE";    
+            return "UNKNOWN CONTROL LOOP TYPE"
 
     def example_find_actuators_and_set_device_id(self):
         rospy.loginfo("-------------------------------")
@@ -75,7 +80,11 @@ class ExampleActuatorConfiguration:
         try:
             all_devices = self.read_all_devices()
             for device in all_devices.output.device_handle:
-                if device.device_type == DeviceTypes.BIG_ACTUATOR or device.device_type == DeviceTypes.SMALL_ACTUATOR or device.device_type == DeviceTypes.MEDIUM_ACTUATOR:
+                if (
+                    device.device_type == DeviceTypes.BIG_ACTUATOR
+                    or device.device_type == DeviceTypes.SMALL_ACTUATOR
+                    or device.device_type == DeviceTypes.MEDIUM_ACTUATOR
+                ):
                     # Add the device_id to the list if we found an actuator
                     actuator_device_ids.append(device.device_identifier)
                     rospy.loginfo("Found an actuator with device id " + str(device.device_identifier))
@@ -91,7 +100,9 @@ class ExampleActuatorConfiguration:
             if self.device_id in actuator_device_ids:
                 rospy.loginfo("Device id " + str(self.device_id) + " is a valid actuator device id.")
             else:
-                raise ValueError("Device id " + str(self.device_id) + " does not correspond to an actuator's device id.")
+                raise ValueError(
+                    "Device id " + str(self.device_id) + " does not correspond to an actuator's device id."
+                )
                 return False
 
             # We need to set the device ID of the actuator we want to configure
@@ -113,7 +124,7 @@ class ExampleActuatorConfiguration:
         except rospy.ServiceException:
             rospy.logerr("Failed to call ActuatorConfig_ClearFaults")
             return False
-  
+
     def example_get_control_loop_parameters(self, output):
         try:
             control_loop_parameters_response = self.get_control_loop_parameters()
@@ -152,24 +163,25 @@ class ExampleActuatorConfiguration:
 
         if success:
 
-            #-------------------------------------------------------------
+            # -------------------------------------------------------------
             # Find actuators and set which one we want to configure
             success &= self.example_find_actuators_and_set_device_id()
 
-            #-------------------------------------------------------------
+            # -------------------------------------------------------------
             # Clear the faults on a specific actuator
             success &= self.example_clear_actuator_faults()
-            
-            #-------------------------------------------------------------
+
+            # -------------------------------------------------------------
             # Get the control loop parameters on a specific actuator
             control_loop_parameters = None
             success &= self.example_get_control_loop_parameters(control_loop_parameters)
-        
+
         # For testing purposes
         rospy.set_param("/kortex_examples_test_results/actuator_configuration_python", success)
 
         if not success:
             rospy.logerr("The example encountered an error.")
+
 
 if __name__ == "__main__":
     ex = ExampleActuatorConfiguration()

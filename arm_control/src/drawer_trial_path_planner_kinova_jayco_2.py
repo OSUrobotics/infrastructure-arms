@@ -4,11 +4,11 @@
 # Email: dufrenek@oregonstate.edu
 # Date: 6/16
 #
-# 
+#
 
 import sys
 import subprocess
-import rospy 
+import rospy
 import actionlib
 import time
 from infrastructure_msgs.msg import StageAction, StageGoal, StageFeedback, StageResult
@@ -23,29 +23,31 @@ import numpy as np
 import json
 import os
 
-class DrawerArmController():
-    
+
+class DrawerArmController:
     def __init__(self):
         # Joint angles path
         __here__ = os.path.dirname(__file__)
-        self.darwer_arm_presets: dict = json.load(f'{__here__}/joint_angles/drawer.json')
-        self.drawer_parameters: dict = json.load(f'{__here__}/drawer/drawer_parameters.json')
+        self.darwer_arm_presets: dict = json.load(f"{__here__}/joint_angles/drawer.json")
+        self.drawer_parameters: dict = json.load(f"{__here__}/drawer/drawer_parameters.json")
 
-        #initializing actionservers
-        self.start_arm = actionlib.SimpleActionServer("start_arm_sequence", StageAction, self.start_arm_sequence_callback, False) 
+        # initializing actionservers
+        self.start_arm = actionlib.SimpleActionServer(
+            "start_arm_sequence", StageAction, self.start_arm_sequence_callback, False
+        )
         self.start_arm.start()
-        #print(real_robot)
+        # print(real_robot)
         real_robot = True
         # To read from redirected ROS Topic (Gazebo launch use)
         if real_robot:
-            joint_state_topic = ['joint_states:=/j2s7s300_driver/out/joint_state']
+            joint_state_topic = ["joint_states:=/j2s7s300_driver/out/joint_state"]
             moveit_commander.roscpp_initialize(joint_state_topic)
-            #rospy.init_node('move_kinova', anonymous=False)
+            # rospy.init_node('move_kinova', anonymous=False)
             moveit_commander.roscpp_initialize(sys.argv)
         else:
-            joint_state_topic = ['joint_states:=/j2s7s300/joint_states']
+            joint_state_topic = ["joint_states:=/j2s7s300/joint_states"]
             moveit_commander.roscpp_initialize(joint_state_topic)
-            #rospy.init_node('move_kinova', anonymous=False)
+            # rospy.init_node('move_kinova', anonymous=False)
             moveit_commander.roscpp_initialize(sys.argv)
 
         # Define robot using RobotCommander. Provided robot info such as
@@ -54,8 +56,6 @@ class DrawerArmController():
 
         # Setting the world
         self.scene = moveit_commander.PlanningSceneInterface(synchronous=True)
-        
-
 
         # Define the planning group for the arm you are using
         # You can easily look it up on rviz under the MotionPlanning tab
@@ -65,9 +65,9 @@ class DrawerArmController():
         rospy.wait_for_service("/apply_planning_scene", 10.0)
         rospy.wait_for_service("/get_planning_scene", 10.0)
 
-        self.apply_scene = rospy.ServiceProxy('/apply_planning_scene', ApplyPlanningScene)
-        self.get_scene = rospy.ServiceProxy('/get_planning_scene', GetPlanningScene)
-        #rospy.sleep(2)
+        self.apply_scene = rospy.ServiceProxy("/apply_planning_scene", ApplyPlanningScene)
+        self.get_scene = rospy.ServiceProxy("/get_planning_scene", GetPlanningScene)
+        # rospy.sleep(2)
 
         # To see the trajectory
         self.disp = DisplayTrajectory()
@@ -76,16 +76,21 @@ class DrawerArmController():
 
         self.rate = rospy.Rate(10)
 
-        self.move_group.allow_replanning(1)      
+        self.move_group.allow_replanning(1)
 
-
-        # Add constraint areas 
-        self._add_constraint_box(pos=[.63,0,1], dim=[.1,2,2], name="drawer")
-        self._add_constraint_box(pos=[0,0,-.05], dim=[2,2,.1], name="table")
-        self._add_constraint_box(pos=[-.53,.762,.5], dim=[.1,.25,1], orient=[0.0,0.0,1.0,.5], name="rear_left_camera")
-        self._add_constraint_box(pos=[-.53,-.762,.5], dim=[.1,.25,1], orient=[0.0,0.0,1.0,-.5], name="rear_right_camera")
-        self._add_constraint_box(pos=[.475,0,1.1], dim=[.2,2,.1], orient=[0.0,1.0,0.0,-.1], name="overhead_light")
-        self._add_constraint_box(pos=[.46,-0.09,.28], dim=[0.07, 0.25, 0.07], name="handle")
+        # Add constraint areas
+        self._add_constraint_box(pos=[0.63, 0, 1], dim=[0.1, 2, 2], name="drawer")
+        self._add_constraint_box(pos=[0, 0, -0.05], dim=[2, 2, 0.1], name="table")
+        self._add_constraint_box(
+            pos=[-0.53, 0.762, 0.5], dim=[0.1, 0.25, 1], orient=[0.0, 0.0, 1.0, 0.5], name="rear_left_camera"
+        )
+        self._add_constraint_box(
+            pos=[-0.53, -0.762, 0.5], dim=[0.1, 0.25, 1], orient=[0.0, 0.0, 1.0, -0.5], name="rear_right_camera"
+        )
+        self._add_constraint_box(
+            pos=[0.475, 0, 1.1], dim=[0.2, 2, 0.1], orient=[0.0, 1.0, 0.0, -0.1], name="overhead_light"
+        )
+        self._add_constraint_box(pos=[0.46, -0.09, 0.28], dim=[0.07, 0.25, 0.07], name="handle")
         # knob: radius: 3.004, height: 2 + 3/4 + 0.10
         self._add_constraint_cylinder(self.drawer_parameters["knob"])
         rospy.loginfo("Added scene constraints.")
@@ -102,22 +107,19 @@ class DrawerArmController():
             self.darwer_arm_presets["initial_joint_position"]["joint7"],
         ]
 
-
         rospy.sleep(3)
-        self.joint_angle_rounded = 2 
+        self.joint_angle_rounded = 2
 
-        # Move to start position          
+        # Move to start position
         self.run_arm_to_start_pose()
 
         # Go to standard pull position
         self.current_pose = self.move_group.get_current_pose()
-        self.target_pose = self.generate_pose([.37, .3, .31], [90, 0, 50])
+        self.target_pose = self.generate_pose([0.37, 0.3, 0.31], [90, 0, 50])
         self.run_arm_to_target_pose()
 
         rospy.signal_shutdown("done")
         hey = raw_input("arm at target pose")
-
-
 
         # self.current_pose = self.move_group.get_current_pose()
         # print("Current pose: ", self.current_pose)
@@ -129,10 +131,8 @@ class DrawerArmController():
         # self.current_pose = self.move_group.get_current_pose()
         # print("Current pose: ", self.current_pose)
 
-
         # rospy.signal_shutdown("done")
         # hey = raw_input("Enter to move to cartesian pull position")
-
 
         # self.current_pose.pose.position.x -= 0
         # self.current_pose.pose.position.y += -.1
@@ -158,33 +158,30 @@ class DrawerArmController():
         # self.move_group.stop()
         # self.move_group.clear_pose_targets()
 
-
     def run_arm_to_joint_orientation(self, joint_angles: list) -> None:
-        """ Run the arm to a specific joint orientation """
+        """Run the arm to a specific joint orientation"""
         self.move_group.set_joint_value_target(joint_angles)
         self.move_group.plan()
         self.move_group.go(wait=True)
         self.move_group.stop()
         self.move_group.clear_pose_targets()
-        self.current_joint_values = self.move_group.get_current_joint_values() # How to get current joint positions
+        self.current_joint_values = self.move_group.get_current_joint_values()  # How to get current joint positions
         print("Joint angles", self.current_joint_values)
         return
-    
 
     def run_arm_to_start_pose(self) -> None:
-        """ Run the arm to the starting pose """
+        """Run the arm to the starting pose"""
         return self.run_arm_to_joint_orientation(self.start_pose)
 
-
     def run_arm_to_target_pose(self) -> None:
-        """ Run the end effector to a specific position and orientation """
+        """Run the end effector to a specific position and orientation"""
         self.move_group.set_pose_target(self.target_pose)
         out = self.move_group.go(wait=True)
         self.move_group.stop()
         self.move_group.clear_pose_targets()
         print(f"Reached target: {self.target_pose}")
         return
-    
+
         """
         self.current_pose = self.move_group.get_current_pose() # How to get current pose
         q_down = quaternion_from_euler(0,0,-.5)
@@ -236,31 +233,32 @@ class DrawerArmController():
         self.move_group.clear_pose_targets()
         """
 
-
-        self.current_pose = self.move_group.get_current_pose() # How to get current pose
+        self.current_pose = self.move_group.get_current_pose()  # How to get current pose
         print("Updated pose", self.current_pose)
-        #print(Pose())
+        # print(Pose())
 
-
- 
     def start_arm_sequence_callback(self, goal):
-    
+
         self.start_arm.publish_feedback(StageFeedback(status="EXAMPLE: GRABBING OBJECT"))
-        #user_n = raw_input("bro")
+        # user_n = raw_input("bro")
         # Do arm call here
         rospy.sleep(1.0)
-        self.start_arm.set_succeeded(StageResult(result = 0), text="SUCCESS")
+        self.start_arm.set_succeeded(StageResult(result=0), text="SUCCESS")
 
-    def modify_arm_pose_cartesian(self, ):
-        # 
+    def modify_arm_pose_cartesian(
+        self,
+    ):
+        #
         print("bro")
 
     def generate_pose(self, position: list, orientation: list) -> np.ndarray:
-        """ Generate a pose from a position and orientation 
+        """Generate a pose from a position and orientation
         @param position: position of the end effector in meters
         @param orientation: orientation of the end effector in degrees
         """
-        quat = tfs.quaternion_from_euler(math.radians(orientation[0]),math.radians(orientation[1]),math.radians(orientation[2]))
+        quat = tfs.quaternion_from_euler(
+            math.radians(orientation[0]), math.radians(orientation[1]), math.radians(orientation[2])
+        )
         temp_pose = Pose()
         temp_pose.position.x = position[0]
         temp_pose.position.y = position[1]
@@ -272,15 +270,14 @@ class DrawerArmController():
 
         return temp_pose
 
-
-    def _add_constraint_box(self, name, dim, pos, orient=[0.0,0.0,1.0,0.0]) -> bool:
-        """ Add a constraint box to the scene """
+    def _add_constraint_box(self, name, dim, pos, orient=[0.0, 0.0, 1.0, 0.0]) -> bool:
+        """Add a constraint box to the scene"""
         box_pose = PoseStamped()
         box_pose.header.frame_id = "world"
-        
-        box_pose.pose.position.x = pos[0] 
-        box_pose.pose.position.y = pos[1]  
-        box_pose.pose.position.z = pos[2] 
+
+        box_pose.pose.position.x = pos[0]
+        box_pose.pose.position.y = pos[1]
+        box_pose.pose.position.z = pos[2]
         box_pose.pose.orientation.x = orient[0]
         box_pose.pose.orientation.y = orient[1]
         box_pose.pose.orientation.z = orient[2]
@@ -292,9 +289,9 @@ class DrawerArmController():
             return True
         else:
             return False
-    
+
     def _add_constraint_cylinder(self, cyl: dict) -> bool:
-        """ Add a constraint cylinder to the scene """
+        """Add a constraint cylinder to the scene"""
         cyl_pose = PoseStamped()
         cyl_pose.header.frame_id = "world"
         cyl_name = cyl["name"]
@@ -305,13 +302,13 @@ class DrawerArmController():
         cyl_pose.pose.position.y = cyl["position"]["y"]
         cyl_pose.pose.position.z = cyl["position"]["z"]
 
+        # Get quaternion from 3D orientation
         quat = tfs.quaternion_from_euler(cyl["orientation"]["x"], cyl["orientation"]["y"], cyl["orientation"]["z"])
-        
         cyl_pose.pose.orientation.x = quat[0]
         cyl_pose.pose.orientation.y = quat[1]
         cyl_pose.pose.orientation.z = quat[2]
         cyl_pose.pose.orientation.w = quat[3]
-        
+
         self.scene.add_cylinder(cyl_name, cyl_pose, cyl_height, cyl_radius)
 
         if self._check_object_presence(cyl_name):
@@ -319,9 +316,8 @@ class DrawerArmController():
         else:
             return False
 
-
     def _check_object_presence(self, obj_name: str) -> bool:
-        """ Check to see if the constraint object was successfully added """
+        """Check to see if the constraint object was successfully added"""
         start_time = time_now = rospy.get_time()
         while (time_now - start_time < 5) and not rospy.is_shutdown():
             # Test if the object is in the scene
@@ -331,23 +327,20 @@ class DrawerArmController():
             if is_known:
                 print(f"Added constraint {obj_name}")
                 return True
-            
+
             # sleep, giving other threads time on the processor
             rospy.sleep(0.1)
             time_now = rospy.get_time()
         # If we exited teh loop, then we timed out
         print(f"Failed adding constraint {obj_name}")
         return False
-    
 
     def run(self):
 
         return
 
 
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     rospy.init_node("drawer_arm_controller_what", argv=sys.argv)
     begin = DrawerArmController()
     rospy.spin()

@@ -4,11 +4,11 @@
 # Email: dufrenek@oregonstate.edu
 # Date: 6/16
 #
-# 
+#
 
 import sys
 import subprocess
-import rospy 
+import rospy
 import actionlib
 import time
 from infrastructure_msgs.msg import StageAction, StageGoal, StageFeedback, StageResult
@@ -20,24 +20,26 @@ from time import sleep
 from tf.transformations import *
 import numpy as np
 
-class DoorArmController():
-    
-    def __init__(self):   
-        #initializing actionservers
-        self.start_arm = actionlib.SimpleActionServer("start_arm_sequence", StageAction, self.start_arm_sequence_callback, False) 
+
+class DoorArmController:
+    def __init__(self):
+        # initializing actionservers
+        self.start_arm = actionlib.SimpleActionServer(
+            "start_arm_sequence", StageAction, self.start_arm_sequence_callback, False
+        )
         self.start_arm.start()
-        #print(real_robot)
+        # print(real_robot)
         real_robot = True
         # To read from redirected ROS Topic (Gazebo launch use)
         if real_robot:
-            joint_state_topic = ['joint_states:=/j2s7s300_driver/out/joint_state']
+            joint_state_topic = ["joint_states:=/j2s7s300_driver/out/joint_state"]
             moveit_commander.roscpp_initialize(joint_state_topic)
-            #rospy.init_node('move_kinova', anonymous=False)
+            # rospy.init_node('move_kinova', anonymous=False)
             moveit_commander.roscpp_initialize(sys.argv)
         else:
-            joint_state_topic = ['joint_states:=/j2s7s300/joint_states']
+            joint_state_topic = ["joint_states:=/j2s7s300/joint_states"]
             moveit_commander.roscpp_initialize(joint_state_topic)
-            #rospy.init_node('move_kinova', anonymous=False)
+            # rospy.init_node('move_kinova', anonymous=False)
             moveit_commander.roscpp_initialize(sys.argv)
 
         # Define robot using RobotCommander. Provided robot info such as
@@ -46,8 +48,6 @@ class DoorArmController():
 
         # Setting the world
         self.scene = moveit_commander.PlanningSceneInterface(synchronous=True)
-        
-
 
         # Define the planning group for the arm you are using
         # You can easily look it up on rviz under the MotionPlanning tab
@@ -57,9 +57,9 @@ class DoorArmController():
         rospy.wait_for_service("/apply_planning_scene", 10.0)
         rospy.wait_for_service("/get_planning_scene", 10.0)
 
-        self.apply_scene = rospy.ServiceProxy('/apply_planning_scene', ApplyPlanningScene)
-        self.get_scene = rospy.ServiceProxy('/get_planning_scene', GetPlanningScene)
-        #rospy.sleep(2)
+        self.apply_scene = rospy.ServiceProxy("/apply_planning_scene", ApplyPlanningScene)
+        self.get_scene = rospy.ServiceProxy("/get_planning_scene", GetPlanningScene)
+        # rospy.sleep(2)
 
         # To see the trajectory
         self.disp = DisplayTrajectory()
@@ -68,47 +68,59 @@ class DoorArmController():
 
         self.rate = rospy.Rate(10)
 
-        self.move_group.allow_replanning(1)      
+        self.move_group.allow_replanning(1)
 
-
-        # Add constraint areas 
-        self.add_constraint_box(pos=[.63,0,1], dim=[.1,2,2], name="door")
-        self.add_constraint_box(pos=[0,0,-.05], dim=[2,2,.1], name="table")
-        self.add_constraint_box(pos=[-.53,.762,.5], dim=[.1,.25,1], orient=[0.0,0.0,1.0,.5], name="rear_left_camera")
-        self.add_constraint_box(pos=[-.53,-.762,.5], dim=[.1,.25,1], orient=[0.0,0.0,1.0,-.5], name="rear_right_camera")
-        self.add_constraint_box(pos=[.475,0,1.1], dim=[.2,2,.1], orient=[0.0,1.0,0.0,-.1], name="overhead_light")
-        self.add_constraint_box(pos=[.46,-0.09,.28], dim=[.07,.07,.25], name="handle")
+        # Add constraint areas
+        self.add_constraint_box(pos=[0.63, 0, 1], dim=[0.1, 2, 2], name="door")
+        self.add_constraint_box(pos=[0, 0, -0.05], dim=[2, 2, 0.1], name="table")
+        self.add_constraint_box(
+            pos=[-0.53, 0.762, 0.5], dim=[0.1, 0.25, 1], orient=[0.0, 0.0, 1.0, 0.5], name="rear_left_camera"
+        )
+        self.add_constraint_box(
+            pos=[-0.53, -0.762, 0.5], dim=[0.1, 0.25, 1], orient=[0.0, 0.0, 1.0, -0.5], name="rear_right_camera"
+        )
+        self.add_constraint_box(
+            pos=[0.475, 0, 1.1], dim=[0.2, 2, 0.1], orient=[0.0, 1.0, 0.0, -0.1], name="overhead_light"
+        )
+        self.add_constraint_box(pos=[0.46, -0.09, 0.28], dim=[0.07, 0.07, 0.25], name="handle")
         rospy.loginfo("Added scene constraints.")
 
-
         rospy.sleep(3)
-        self.joint_angle_rounded = 2 
+        self.joint_angle_rounded = 2
 
-        # Move to start position          
-        self.move_group.set_joint_value_target([8.539976244420286, 3.744075592256784, 2.8460321063356004, 5.4660119035519665, 4.504153751590303, 4.925874364952057, 0.24287098699616808])
+        # Move to start position
+        self.move_group.set_joint_value_target(
+            [
+                8.539976244420286,
+                3.744075592256784,
+                2.8460321063356004,
+                5.4660119035519665,
+                4.504153751590303,
+                4.925874364952057,
+                0.24287098699616808,
+            ]
+        )
         self.move_group.plan()
         self.move_group.go(wait=True)
         self.move_group.stop()
         self.move_group.clear_pose_targets()
-        self.current_joint_values = self.move_group.get_current_joint_values() # How to get current joint positions
+        self.current_joint_values = self.move_group.get_current_joint_values()  # How to get current joint positions
         print("Joint angles", self.current_joint_values)
 
         # Go to standard pull position
         self.target_pose = self.move_group.get_current_pose()
-        self.target_pose = self.generate_pose([.37, .3, .31], [90, 0, 50])
+        self.target_pose = self.generate_pose([0.37, 0.3, 0.31], [90, 0, 50])
         self.move_group.set_pose_target(self.target_pose)
         out = self.move_group.go(wait=True)
         self.move_group.stop()
         self.move_group.clear_pose_targets()
-
-
 
         rospy.signal_shutdown("done")
         hey = raw_input("stop here")
 
         self.current_pose = self.move_group.get_current_pose()
         print("Current pose: ", self.current_pose)
-        self.current_pose.pose.position.y += .1
+        self.current_pose.pose.position.y += 0.1
         self.move_group.set_pose_target(self.current_pose)
         out = self.move_group.go(wait=True)
         self.move_group.stop()
@@ -116,35 +128,32 @@ class DoorArmController():
         self.current_pose = self.move_group.get_current_pose()
         print("Current pose: ", self.current_pose)
 
-
         rospy.signal_shutdown("done")
         hey = raw_input("Enter to move to cartesian pull position")
 
-
         self.current_pose.pose.position.x -= 0
-        self.current_pose.pose.position.y += -.1
-        self.current_pose.pose.position.z += .2
-        self.current_joint_values = self.move_group.get_current_joint_values() # How to get current joint positions
+        self.current_pose.pose.position.y += -0.1
+        self.current_pose.pose.position.z += 0.2
+        self.current_joint_values = self.move_group.get_current_joint_values()  # How to get current joint positions
         print("Joint angles", self.current_joint_values)
         self.move_group.set_pose_target(self.current_pose)
         out = self.move_group.go(wait=True)
         self.move_group.stop()
         self.move_group.clear_pose_targets()
 
-        self.current_joint_values = self.move_group.get_current_joint_values() # How to get current joint positions
-        self.current_pose = self.move_group.get_current_pose() #
+        self.current_joint_values = self.move_group.get_current_joint_values()  # How to get current joint positions
+        self.current_pose = self.move_group.get_current_pose()  #
         print("Joint angles", self.current_joint_values)
         print("Target pose", self.current_pose)
-        #user = raw_input("Waiting to move on")
+        # user = raw_input("Waiting to move on")
 
-        self.current_pose.pose.position.x += .1
-        self.current_pose.pose.position.y -= .15
+        self.current_pose.pose.position.x += 0.1
+        self.current_pose.pose.position.y -= 0.15
         self.current_pose.pose.position.z += 0
         self.move_group.set_pose_target(self.current_pose)
         out = self.move_group.go(wait=True)
         self.move_group.stop()
         self.move_group.clear_pose_targets()
-
 
         """
         self.current_pose = self.move_group.get_current_pose() # How to get current pose
@@ -197,27 +206,28 @@ class DoorArmController():
         self.move_group.clear_pose_targets()
         """
 
-
-        self.current_pose = self.move_group.get_current_pose() # How to get current pose
+        self.current_pose = self.move_group.get_current_pose()  # How to get current pose
         print("Updated pose", self.current_pose)
-        #print(Pose())
+        # print(Pose())
 
-
- 
     def start_arm_sequence_callback(self, goal):
-    
+
         self.start_arm.publish_feedback(StageFeedback(status="EXAMPLE: GRABBING OBJECT"))
-        #user_n = raw_input("bro")
+        # user_n = raw_input("bro")
         # Do arm call here
         rospy.sleep(1.0)
-        self.start_arm.set_succeeded(StageResult(result = 0), text="SUCCESS")
+        self.start_arm.set_succeeded(StageResult(result=0), text="SUCCESS")
 
-    def modify_arm_pose_cartesian(self, ):
-        # 
+    def modify_arm_pose_cartesian(
+        self,
+    ):
+        #
         print("bro")
 
     def generate_pose(self, position, orientation):
-        quat = quaternion_from_euler(math.radians(orientation[0]),math.radians(orientation[1]),math.radians(orientation[2]))
+        quat = quaternion_from_euler(
+            math.radians(orientation[0]), math.radians(orientation[1]), math.radians(orientation[2])
+        )
         temp_pose = Pose()
         temp_pose.position.x = position[0]
         temp_pose.position.y = position[1]
@@ -229,14 +239,13 @@ class DoorArmController():
 
         return temp_pose
 
-
-    def add_constraint_box(self, name, dim, pos, orient=[0.0,0.0,1.0,0.0]):
+    def add_constraint_box(self, name, dim, pos, orient=[0.0, 0.0, 1.0, 0.0]):
         box_pose = PoseStamped()
         box_pose.header.frame_id = "world"
-        
-        box_pose.pose.position.x = pos[0] 
-        box_pose.pose.position.y = pos[1]  
-        box_pose.pose.position.z = pos[2] 
+
+        box_pose.pose.position.x = pos[0]
+        box_pose.pose.position.y = pos[1]
+        box_pose.pose.position.z = pos[2]
         box_pose.pose.orientation.x = orient[0]
         box_pose.pose.orientation.y = orient[1]
         box_pose.pose.orientation.z = orient[2]
@@ -262,8 +271,7 @@ class DoorArmController():
         return False
 
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     rospy.init_node("door_arm_controller_what", argv=sys.argv)
     begin = DoorArmController()
     rospy.spin()
