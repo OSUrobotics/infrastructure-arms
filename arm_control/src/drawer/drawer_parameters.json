@@ -1,6 +1,7 @@
 {
     "knob": {
         "name": "knob",
+        "type": "cylinder",
         "dimensions": {
             "radius": 0.0763016,
             "height": 0.070104
@@ -11,12 +12,12 @@
         "orientation": {
             "x": 0,
             "y": 0,
-            "z": 0,
-            "w": 0
+            "z": 0
         }
     },
     "handle": {
         "name": "handle",
+        "type": "box",
         "dimensions": {
             "x": 0.07,
             "y": 0.25,
@@ -28,6 +29,7 @@
     },
     "table": {
         "name": "table",
+        "type": "box",
         "dimensions": {
             "x": 2.00,
             "y": 2.00,
