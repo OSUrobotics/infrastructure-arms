@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 # Author: Kyle DuFrene
 # Email: dufrenek@oregonstate.edu
@@ -26,10 +26,14 @@ import os
 
 class DrawerArmController:
     def __init__(self):
-        # Joint angles path
+        # Joint scene JSON info
         __here__ = os.path.dirname(__file__)
-        self.darwer_arm_presets: dict = json.load(f"{__here__}/joint_angles/drawer.json")
-        self.drawer_parameters: dict = json.load(f"{__here__}/drawer/drawer_parameters.json")
+        drawer_arm_presets_path = os.path.join(__here__,"joint_angles", "drawer.json")
+        drawer_parameters_path = os.path.join(__here__, "drawer", "drawer_with_knob.json")
+        with open(drawer_arm_presets_path, "r") as jfile:
+            self.darwer_arm_presets = json.load(jfile)
+        with open(drawer_parameters_path, "r") as jfile:
+            self.drawer_parameters = json.load(jfile)
 
         # initializing actionservers
         self.start_arm = actionlib.SimpleActionServer(
@@ -79,86 +83,20 @@ class DrawerArmController:
         self.move_group.allow_replanning(1)
 
         # Add constraint areas
-        self._add_constraint_box(pos=[0.63, 0, 1], dim=[0.1, 2, 2], name="drawer")
-        self._add_constraint_box(pos=[0, 0, -0.05], dim=[2, 2, 0.1], name="table")
-        self._add_constraint_box(
-            pos=[-0.53, 0.762, 0.5], dim=[0.1, 0.25, 1], orient=[0.0, 0.0, 1.0, 0.5], name="rear_left_camera"
-        )
-        self._add_constraint_box(
-            pos=[-0.53, -0.762, 0.5], dim=[0.1, 0.25, 1], orient=[0.0, 0.0, 1.0, -0.5], name="rear_right_camera"
-        )
-        self._add_constraint_box(
-            pos=[0.475, 0, 1.1], dim=[0.2, 2, 0.1], orient=[0.0, 1.0, 0.0, -0.1], name="overhead_light"
-        )
-        self._add_constraint_box(pos=[0.46, -0.09, 0.28], dim=[0.07, 0.25, 0.07], name="handle")
-        # knob: radius: 3.004, height: 2 + 3/4 + 0.10
-        self._add_constraint_cylinder(self.drawer_parameters["knob"])
+        self._add_constraints(self.drawer_parameters)
         rospy.loginfo("Added scene constraints.")
 
         # # Start pose
-        # self.start_pose = list(map(lambda k: self.darwer_arm_presets[k], sorted(self.darwer_arm_presets["initial_joint_position"].keys())))
-        self.start_pose = [
-            self.darwer_arm_presets["initial_joint_position"]["joint1"],
-            self.darwer_arm_presets["initial_joint_position"]["joint2"],
-            self.darwer_arm_presets["initial_joint_position"]["joint3"],
-            self.darwer_arm_presets["initial_joint_position"]["joint4"],
-            self.darwer_arm_presets["initial_joint_position"]["joint5"],
-            self.darwer_arm_presets["initial_joint_position"]["joint6"],
-            self.darwer_arm_presets["initial_joint_position"]["joint7"],
-        ]
+        self.start_pose = list(map(
+            lambda k: self.darwer_arm_presets["initial_joint_position"][k],
+            sorted(self.darwer_arm_presets["initial_joint_position"].keys())
+        ))
 
         rospy.sleep(3)
         self.joint_angle_rounded = 2
 
-        # Move to start position
-        self.run_arm_to_start_pose()
-
-        # Go to standard pull position
-        self.current_pose = self.move_group.get_current_pose()
-        self.target_pose = self.generate_pose([0.37, 0.3, 0.31], [90, 0, 50])
-        self.run_arm_to_target_pose()
-
-        rospy.signal_shutdown("done")
-        hey = raw_input("arm at target pose")
-
-        # self.current_pose = self.move_group.get_current_pose()
-        # print("Current pose: ", self.current_pose)
-        # self.current_pose.pose.position.y += .1
-        # self.move_group.set_pose_target(self.current_pose)
-        # out = self.move_group.go(wait=True)
-        # self.move_group.stop()
-        # self.move_group.clear_pose_targets()
-        # self.current_pose = self.move_group.get_current_pose()
-        # print("Current pose: ", self.current_pose)
-
-        # rospy.signal_shutdown("done")
-        # hey = raw_input("Enter to move to cartesian pull position")
-
-        # self.current_pose.pose.position.x -= 0
-        # self.current_pose.pose.position.y += -.1
-        # self.current_pose.pose.position.z += .2
-        # self.current_joint_values = self.move_group.get_current_joint_values() # How to get current joint positions
-        # print("Joint angles", self.current_joint_values)
-        # self.move_group.set_pose_target(self.current_pose)
-        # out = self.move_group.go(wait=True)
-        # self.move_group.stop()
-        # self.move_group.clear_pose_targets()
-
-        # self.current_joint_values = self.move_group.get_current_joint_values() # How to get current joint positions
-        # self.current_pose = self.move_group.get_current_pose() #
-        # print("Joint angles", self.current_joint_values)
-        # print("Target pose", self.current_pose)
-        # #user = raw_input("Waiting to move on")
-
-        # self.current_pose.pose.position.x += .1
-        # self.current_pose.pose.position.y -= .15
-        # self.current_pose.pose.position.z += 0
-        # self.move_group.set_pose_target(self.current_pose)
-        # out = self.move_group.go(wait=True)
-        # self.move_group.stop()
-        # self.move_group.clear_pose_targets()
-
-    def run_arm_to_joint_orientation(self, joint_angles: list) -> None:
+        
+    def run_arm_to_joint_orientation(self, joint_angles):
         """Run the arm to a specific joint orientation"""
         self.move_group.set_joint_value_target(joint_angles)
         self.move_group.plan()
@@ -169,73 +107,19 @@ class DrawerArmController:
         print("Joint angles", self.current_joint_values)
         return
 
-    def run_arm_to_start_pose(self) -> None:
+    def run_arm_to_start_pose(self):
         """Run the arm to the starting pose"""
         return self.run_arm_to_joint_orientation(self.start_pose)
 
-    def run_arm_to_target_pose(self) -> None:
+    def run_arm_to_target_pose(self):
         """Run the end effector to a specific position and orientation"""
         self.move_group.set_pose_target(self.target_pose)
         out = self.move_group.go(wait=True)
         self.move_group.stop()
         self.move_group.clear_pose_targets()
-        print(f"Reached target: {self.target_pose}")
+        print "Reached target", self.target_pose
         return
 
-        """
-        self.current_pose = self.move_group.get_current_pose() # How to get current pose
-        q_down = quaternion_from_euler(0,0,-.5)
-        current_q = [self.current_pose.pose.orientation.x, self.current_pose.pose.orientation.y, self.current_pose.pose.orientation.z, self.current_pose.pose.orientation.w]
-        q_new = quaternion_multiply(q_down, current_q)
-
-        self.current_pose.pose.orientation.x = q_new[0]
-        self.current_pose.pose.orientation.y = q_new[1]
-        self.current_pose.pose.orientation.z = q_new[2]
-        self.current_pose.pose.orientation.w = q_new[3]
-        self.move_group.set_pose_target(self.current_pose)
-        out = self.move_group.go(wait=True)
-        self.move_group.stop()
-        self.move_group.clear_pose_targets()
-        
-        self.current_pose.pose.position.x += 0
-        self.current_pose.pose.position.y += 0
-        self.current_pose.pose.position.z -= .03
-        self.move_group.set_pose_target(self.current_pose)
-        out = self.move_group.go(wait=True)
-        self.move_group.stop()
-        self.move_group.clear_pose_targets()
-
-        self.move_group.set_joint_value_target([11.331234850300119, 2.478875668967935, 2.573784604947852, 0.6257295386642381, 4.493317349114771, 1.1381729982464674, 9.406469260907302])
-        out = self.move_group.go(wait=True)
-        self.move_group.stop()
-        
-        self.current_pose.pose.orientation.x = 0
-        self.current_pose.pose.orientation.y = 0
-        self.current_pose.pose.orientation.z = -.5
-        self.current_pose.pose.orientation.w = 0
-
-        
-        q_down = quaternion_from_euler(0,0,0)
-        current_q = [self.current_pose.pose.orientation.x, self.current_pose.pose.orientation.y, self.current_pose.pose.orientation.z, self.current_pose.pose.orientation.w]
-        q_new = quaternion_multiply(q_down, current_q)
-
-        self.current_pose.pose.orientation.x = q_new[0]
-        self.current_pose.pose.orientation.y = q_new[1]
-        self.current_pose.pose.orientation.z = q_new[2]
-        self.current_pose.pose.orientation.w = q_new[3]
-        
-
-
-
-        self.move_group.set_pose_target(self.current_pose)
-        out = self.move_group.go(wait=True)
-        self.move_group.stop()
-        self.move_group.clear_pose_targets()
-        """
-
-        self.current_pose = self.move_group.get_current_pose()  # How to get current pose
-        print("Updated pose", self.current_pose)
-        # print(Pose())
 
     def start_arm_sequence_callback(self, goal):
 
@@ -251,13 +135,13 @@ class DrawerArmController:
         #
         print("bro")
 
-    def generate_pose(self, position: list, orientation: list) -> np.ndarray:
+    def generate_pose(self, position, orientation):
         """Generate a pose from a position and orientation
         @param position: position of the end effector in meters
         @param orientation: orientation of the end effector in degrees
         """
         quat = tfs.quaternion_from_euler(
-            math.radians(orientation[0]), math.radians(orientation[1]), math.radians(orientation[2])
+            np.radians(orientation[0]), np.radians(orientation[1]), np.radians(orientation[2])
         )
         temp_pose = Pose()
         temp_pose.position.x = position[0]
@@ -269,28 +153,53 @@ class DrawerArmController:
         temp_pose.orientation.w = quat[3]
 
         return temp_pose
+    
+    def _add_constraints(self, scene_objs):
+        for obj in scene_objs.values():
+            obj_type = obj["type"]
+            if obj_type == "box":
+                self._add_constraint_box(obj)
+            elif obj_type == "cylinder":
+                self._add_constraint_cylinder(obj)
 
-    def _add_constraint_box(self, name, dim, pos, orient=[0.0, 0.0, 1.0, 0.0]) -> bool:
+
+    def _add_constraint_box(self, box):
         """Add a constraint box to the scene"""
         box_pose = PoseStamped()
         box_pose.header.frame_id = "world"
+        box_name = box["name"]
+        box_size = (
+            box["dimensions"]["x"],
+            box["dimensions"]["y"],
+            box["dimensions"]["z"],
+        )
 
-        box_pose.pose.position.x = pos[0]
-        box_pose.pose.position.y = pos[1]
-        box_pose.pose.position.z = pos[2]
-        box_pose.pose.orientation.x = orient[0]
-        box_pose.pose.orientation.y = orient[1]
-        box_pose.pose.orientation.z = orient[2]
-        box_pose.pose.orientation.w = orient[3]
-        box_name = name
-        self.scene.add_box(box_name, box_pose, size=(dim[0], dim[1], dim[2]))
+        box_pose.pose.position.x = box["position"]["x"]
+        box_pose.pose.position.y = box["position"]["y"]
+        box_pose.pose.position.z = box["position"]["z"]
+        # Get quaternion from 3D orientation
+        orients = list(map(
+            lambda k: np.radians(box["orientation"][k]),
+            sorted(box["orientation"].keys())
+        ))
+        quat = tfs.quaternion_from_euler(
+            orients[0],
+            orients[1],
+            orients[2]
+        )
+        box_pose.pose.orientation.x = quat[0]
+        box_pose.pose.orientation.y = quat[1]
+        box_pose.pose.orientation.z = quat[2]
+        box_pose.pose.orientation.w = quat[3]
+        
+        self.scene.add_box(box_name, box_pose, size=box_size)
 
         if self._check_object_presence(box_name):
             return True
         else:
             return False
 
-    def _add_constraint_cylinder(self, cyl: dict) -> bool:
+    def _add_constraint_cylinder(self, cyl):
         """Add a constraint cylinder to the scene"""
         cyl_pose = PoseStamped()
         cyl_pose.header.frame_id = "world"
@@ -303,7 +212,15 @@ class DrawerArmController:
         cyl_pose.pose.position.z = cyl["position"]["z"]
 
         # Get quaternion from 3D orientation
-        quat = tfs.quaternion_from_euler(cyl["orientation"]["x"], cyl["orientation"]["y"], cyl["orientation"]["z"])
+        orients = list(map(
+            lambda k: np.radians(cyl["orientation"][k]),
+            sorted(cyl["orientation"].keys())
+        ))
+        quat = tfs.quaternion_from_euler(
+            orients[0],
+            orients[1],
+            orients[2]
+        )
         cyl_pose.pose.orientation.x = quat[0]
         cyl_pose.pose.orientation.y = quat[1]
         cyl_pose.pose.orientation.z = quat[2]
@@ -316,7 +233,7 @@ class DrawerArmController:
         else:
             return False
 
-    def _check_object_presence(self, obj_name: str) -> bool:
+    def _check_object_presence(self, obj_name):
         """Check to see if the constraint object was successfully added"""
         start_time = time_now = rospy.get_time()
         while (time_now - start_time < 5) and not rospy.is_shutdown():
@@ -325,22 +242,32 @@ class DrawerArmController:
             is_known = obj_name in self.scene.get_known_object_names()
             # See if we are in the expected state
             if is_known:
-                print(f"Added constraint {obj_name}")
+                print "Added constraint", obj_name 
                 return True
 
             # sleep, giving other threads time on the processor
             rospy.sleep(0.1)
             time_now = rospy.get_time()
         # If we exited teh loop, then we timed out
-        print(f"Failed adding constraint {obj_name}")
+        print "Failed adding constraint", obj_name
         return False
 
     def run(self):
+        # Move to start position
+        self.run_arm_to_start_pose()
 
+        # Go to standard pull position
+        self.current_pose = self.move_group.get_current_pose()
+        self.target_pose = self.generate_pose([0.37, 0.3, 0.31], [90, 0, 50])
+        self.run_arm_to_target_pose()
+
+        rospy.signal_shutdown("done")
+        hey = raw_input("arm at target pose")
         return
 
 
 if __name__ == "__main__":
     rospy.init_node("drawer_arm_controller_what", argv=sys.argv)
-    begin = DrawerArmController()
+    dac = DrawerArmController()
+    dac.run()
     rospy.spin()

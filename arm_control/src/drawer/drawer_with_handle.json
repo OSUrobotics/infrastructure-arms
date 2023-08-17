@@ -1,0 +1,97 @@
+{
+    "handle": {
+        "name": "handle",
+        "type": "box",
+        "dimensions": {
+            "x": 0.07,
+            "y": 0.25,
+            "z": 0.07
+        },
+        "position": {
+            "x": 0.46,
+            "y": -0.09,
+            "z": 0.28
+        },
+        "orientation": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+        }
+    },
+    "table": {
+        "name": "table",
+        "type": "box",
+        "dimensions": {
+            "x": 2.00,
+            "y": 2.00,
+            "z": 0.1
+        },
+        "position": {
+            "x": 0,
+            "y": 0,
+            "z": -0.05
+        },
+        "orientation": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+        }
+    },
+    "rear_left_camera": {
+        "name": "rear_left_camera",
+        "type": "box",
+        "dimensions": {
+            "x": 0.1,
+            "y": 0.25,
+            "z": 1.0
+        },
+        "position": {
+            "x": -0.53,
+            "y": 0.762,
+            "z": 0.5
+        },
+        "orientation": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+        }
+    },
+    "rear_right_camera": {
+        "name": "rear_right_camera",
+        "type": "box",
+        "dimensions": {
+            "x": 0.1,
+            "y": 0.25,
+            "z": 1.0
+        },
+        "position": {
+            "x": -0.53,
+            "y": -0.762,
+            "z": 0.5
+        },
+        "orientation": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+        }
+    },
+    "overhead_light": {
+        "name": "overhead_ight",
+        "type": "box",
+        "dimensions": {
+            "x": 0.2,
+            "y": 2.0,
+            "z": 0.1
+        },
+        "position": {
+            "x": 0.475,
+            "y": 0,
+            "z": 1.1
+        },
+        "orientation": {
+            "x": 0,
+            "y": -15,
+            "z": 0
+        }
+    }
+}
