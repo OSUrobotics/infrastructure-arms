@@ -7,9 +7,9 @@
             "height": 0.070104
         },
         "position": {
-            "x": 0.46,
-            "y": -0.09,
-            "z": 0.28
+            "x": 0.5588,
+            "y": 0,
+            "z": 0.4826
         },
         "orientation": {
             "x": 0,
@@ -109,6 +109,25 @@
         "orientation": {
             "x": 0,
             "y": -15,
+            "z": 0
+        }
+    },
+    "front_left_pillar": {
+        "name": "front_left_pillar",
+        "type": "box",
+        "dimensions": {
+            "x": 0.03175,
+            "y": 0.0635,
+            "z": 1.27635
+        },
+        "position": {
+            "x": 0.38735,
+            "y": 0.37465,
+            "z": 0
+        },
+        "orientation": {
+            "x": 0,
+            "y": 0,
             "z": 0
         }
     }

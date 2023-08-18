@@ -55,7 +55,7 @@ Modified source code and configuration packages for the Kinova Jaco2. Modificati
   - Launch parameters:
     ```
     sensor_data:=<string> (Rosbag file containing sensor data for apparatus)
-    
+    0.28
     timestamp_data:=<string> (Rosbag file containing timestamps for the trials for the apparatus) - Not used
 
     position:='x y z' (Position of Drawer model (in meters) in RVIZ, relative to the origin)
