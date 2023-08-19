@@ -63,7 +63,7 @@ class DoorArmController():
         action_address = "/" + "j2s7s300" + "_driver/trajectory_controller"
         self.client_trajectory = actionlib.SimpleActionClient(action_address,
                                             kinova_msgs.msg.SetJointTrajectoryAction)
-        self.client_trajectory.wait_for_server()
+        #self.client_trajectory.wait_for_server()
         
 
         
