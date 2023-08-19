@@ -96,15 +96,16 @@ class DrawerArmController:
         self._add_constraints(self.drawer_env_constraints)
         rospy.loginfo("Added scene constraints.")
 
-        # # Start pose
-        # self.start_pose = list(map(
-        #     lambda k: self.arm_poses["initial_joint_position"][k],
-        #     sorted(self.arm_poses["initial_joint_position"].keys())
-        # ))
-        self.start_pose = self.generate_pose(
-            position = self.arm_poses["start_pose"]["position"],
-            orientation = self.arm_poses["start_pose"]["orientation"]
-        )
+        # Start pose
+        self.start_pose = list(map(
+            lambda k: self.arm_poses["initial_joint_position"][k],
+            sorted(self.arm_poses["initial_joint_position"].keys())
+        ))
+        # self.start_pose = self.generate_pose(
+        #     position = self.arm_poses["start_pose"]["position"],
+        #     orientation = self.arm_poses["start_pose"]["orientation"]
+        # )
+        self.target_pose = self.start_pose
 
         rospy.sleep(3)
         self.joint_angle_rounded = 2
@@ -124,9 +125,9 @@ class DrawerArmController:
 
     def run_arm_to_start_pose(self):
         """Run the arm to the starting pose"""
-        # return self.run_arm_to_joint_orientation(self.start_pose)
-        self.target_pose = self.start_pose
-        return self.run_arm_to_target_pose()
+        return self.run_arm_to_joint_orientation(self.start_pose)
+        # self.target_pose = self.start_pose
+        # return self.run_arm_to_target_pose()
 
 
     def run_arm_to_target_pose(self):
@@ -307,7 +308,8 @@ class DrawerArmController:
 
 
     def run(self):
-
+        # self.print_pose(self.start_pose)
+        # self.print_pose(self.target_pose)
         # Move to start position
         self.current_pose = self.move_group.get_current_pose()
         self.print_pose(self.current_pose.pose)
