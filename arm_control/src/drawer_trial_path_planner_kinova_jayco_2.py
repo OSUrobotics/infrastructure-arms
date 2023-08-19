@@ -22,18 +22,28 @@ import tf.transformations as tfs
 import numpy as np
 import json
 import os
+import pprint
 
 
 class DrawerArmController:
-    def __init__(self):
+    def __init__(self, grasp_obj_type):
         # Joint scene JSON info
         __here__ = os.path.dirname(__file__)
-        drawer_arm_presets_path = os.path.join(__here__,"joint_angles", "drawer.json")
-        drawer_parameters_path = os.path.join(__here__, "drawer", "drawer_with_knob.json")
-        with open(drawer_arm_presets_path, "r") as jfile:
-            self.darwer_arm_presets = json.load(jfile)
-        with open(drawer_parameters_path, "r") as jfile:
-            self.drawer_parameters = json.load(jfile)
+        # Base environment objects
+        drawer_env_base_path = os.path.join(__here__, "drawer", "drawer_env_base.json")
+        with open(drawer_env_base_path, "r") as jfile:
+            self.drawer_env_constraints = json.load(jfile)
+        # Load handle/knob type object
+        grasp_obj_path = os.path.join(__here__, "drawer", grasp_obj_type.strip().lower()+".json")
+        with open(grasp_obj_path, "r") as jfile:
+            grasp_obj = json.load(jfile)
+            self.drawer_env_constraints[grasp_obj[grasp_obj_type]["name"]] = grasp_obj[grasp_obj_type]
+
+        # Load preset poses
+        arm_poses_path = os.path.join(__here__,"joint_angles", "drawer.json") 
+        with open(arm_poses_path, "r") as jfile:
+            self.arm_poses = json.load(jfile)
+        
 
         # initializing actionservers
         self.start_arm = actionlib.SimpleActionServer(
@@ -83,14 +93,18 @@ class DrawerArmController:
         self.move_group.allow_replanning(1)
 
         # Add constraint areas
-        self._add_constraints(self.drawer_parameters)
+        self._add_constraints(self.drawer_env_constraints)
         rospy.loginfo("Added scene constraints.")
 
         # # Start pose
-        self.start_pose = list(map(
-            lambda k: self.darwer_arm_presets["initial_joint_position"][k],
-            sorted(self.darwer_arm_presets["initial_joint_position"].keys())
-        ))
+        # self.start_pose = list(map(
+        #     lambda k: self.arm_poses["initial_joint_position"][k],
+        #     sorted(self.arm_poses["initial_joint_position"].keys())
+        # ))
+        self.start_pose = self.generate_pose(
+            position = self.arm_poses["start_pose"]["position"],
+            orientation = self.arm_poses["start_pose"]["orientation"]
+        )
 
         rospy.sleep(3)
         self.joint_angle_rounded = 2
@@ -107,9 +121,13 @@ class DrawerArmController:
         print("Joint angles", self.current_joint_values)
         return
 
+
     def run_arm_to_start_pose(self):
         """Run the arm to the starting pose"""
-        return self.run_arm_to_joint_orientation(self.start_pose)
+        # return self.run_arm_to_joint_orientation(self.start_pose)
+        self.target_pose = self.start_pose
+        return self.run_arm_to_target_pose()
+
 
     def run_arm_to_target_pose(self):
         """Run the end effector to a specific position and orientation"""
@@ -117,7 +135,7 @@ class DrawerArmController:
         out = self.move_group.go(wait=True)
         self.move_group.stop()
         self.move_group.clear_pose_targets()
-        print "Reached target", self.target_pose
+        print "Reached target:\n", self.target_pose
         return
 
 
@@ -128,25 +146,39 @@ class DrawerArmController:
         # Do arm call here
         rospy.sleep(1.0)
         self.start_arm.set_succeeded(StageResult(result=0), text="SUCCESS")
+        return
 
-    def modify_arm_pose_cartesian(
-        self,
-    ):
+
+    def modify_arm_pose_cartesian(self):
         #
         print("bro")
+        return
+
 
     def generate_pose(self, position, orientation):
         """Generate a pose from a position and orientation
         @param position: position of the end effector in meters
         @param orientation: orientation of the end effector in degrees
         """
-        quat = tfs.quaternion_from_euler(
-            np.radians(orientation[0]), np.radians(orientation[1]), np.radians(orientation[2])
-        )
         temp_pose = Pose()
-        temp_pose.position.x = position[0]
-        temp_pose.position.y = position[1]
-        temp_pose.position.z = position[2]
+        try:
+            temp_pose.position.x = position[0]
+            temp_pose.position.y = position[1]
+            temp_pose.position.z = position[2]
+            quat = tfs.quaternion_from_euler(
+                np.radians(orientation[0]),
+                np.radians(orientation[1]),
+                np.radians(orientation[2])
+            )
+        except KeyError:
+            temp_pose.position.x = position["x"]
+            temp_pose.position.y = position["y"]
+            temp_pose.position.z = position["z"]
+            quat = tfs.quaternion_from_euler(
+                np.radians(orientation["x"]),
+                np.radians(orientation["y"]),
+                np.radians(orientation["z"])
+            )
         temp_pose.orientation.x = quat[0]
         temp_pose.orientation.y = quat[1]
         temp_pose.orientation.z = quat[2]
@@ -154,6 +186,7 @@ class DrawerArmController:
 
         return temp_pose
     
+
     def _add_constraints(self, scene_objs):
         for obj in scene_objs.values():
             obj_type = obj["type"]
@@ -199,6 +232,7 @@ class DrawerArmController:
         else:
             return False
 
+
     def _add_constraint_cylinder(self, cyl):
         """Add a constraint cylinder to the scene"""
         cyl_pose = PoseStamped()
@@ -233,6 +267,7 @@ class DrawerArmController:
         else:
             return False
 
+
     def _check_object_presence(self, obj_name):
         """Check to see if the constraint object was successfully added"""
         start_time = time_now = rospy.get_time()
@@ -252,14 +287,39 @@ class DrawerArmController:
         print "Failed adding constraint", obj_name
         return False
 
-    def run(self):
-        # Move to start position
-        self.run_arm_to_start_pose()
 
-        # Go to standard pull position
+    def print_pose(self, pose):
+        pose = {
+            "position": {
+                "x": pose.position.x,
+                "y": pose.position.y,
+                "z": pose.position.z
+            },
+            "orientation": {
+                "x": pose.orientation.x,
+                "y": pose.orientation.y,
+                "z": pose.orientation.z,
+                "w": pose.orientation.w
+            }
+        }
+        pprint.pprint(pose)
+        return 
+
+
+    def run(self):
+
+        # Move to start position
         self.current_pose = self.move_group.get_current_pose()
-        self.target_pose = self.generate_pose([0.37, 0.3, 0.31], [90, 0, 50])
-        self.run_arm_to_target_pose()
+        self.print_pose(self.current_pose.pose)
+        self.run_arm_to_start_pose()
+        curr_joint_vals = self.move_group.get_current_joint_values()
+        print(curr_joint_vals)
+
+
+        # # Go to standard pull position
+        # self.current_pose = self.move_group.get_current_pose()
+        # self.target_pose = self.generate_pose([0.37, 0.3, 0.31], [90, 0, 50])
+        # self.run_arm_to_target_pose()
 
         rospy.signal_shutdown("done")
         hey = raw_input("arm at target pose")
@@ -268,6 +328,6 @@ class DrawerArmController:
 
 if __name__ == "__main__":
     rospy.init_node("drawer_arm_controller_what", argv=sys.argv)
-    dac = DrawerArmController()
+    dac = DrawerArmController("knob")
     dac.run()
     rospy.spin()

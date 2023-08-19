@@ -1,16 +1,16 @@
 {
-    "handle": {
-        "name": "handle",
+    "drawer": {
+        "name": "drawer",
         "type": "box",
         "dimensions": {
-            "x": 0.07,
-            "y": 0.25,
-            "z": 0.07
+            "x": 0.1,
+            "y": 0.4572,
+            "z": 0.625475
         },
         "position": {
-            "x": 0.46,
-            "y": -0.09,
-            "z": 0.28
+            "x": 0.758825,
+            "y": 0,
+            "z": 0.3127375 
         },
         "orientation": {
             "x": 0,
@@ -84,14 +84,14 @@
             "z": 0.1
         },
         "position": {
-            "x": 0.475,
+            "x": 1.3716,
             "y": 0,
             "z": 1.1
         },
         "orientation": {
             "x": 0,
             "y": -15,
-            "z": 90
+            "z": -90
         }
     },
     "front_left_pillar": {
@@ -104,8 +104,27 @@
         },
         "position": {
             "x": 0.38735,
-            "y": 0.37465,
+            "y": 0.346075,
+            "z": 0.638175
+        },
+        "orientation": {
+            "x": 0,
+            "y": 0,
             "z": 0
+        }
+    },
+    "overhead_light_arm": {
+        "name": "overhead_light_arm",
+        "type": "box",
+        "dimensions": {
+            "x": 0.0428625,
+            "y": 0.7747,
+            "z": 0.0381
+        },
+        "position": {
+            "x": 0.38735,
+            "y": 0,
+            "z": 1.27635
         },
         "orientation": {
             "x": 0,

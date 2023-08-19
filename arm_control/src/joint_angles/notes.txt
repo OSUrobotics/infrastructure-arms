@@ -1,0 +1,9 @@
+    // "initial_joint_position": {
+    //     "joint1": 63.81,
+    //     "joint2": 132,
+    //     "joint3": 88.18,
+    //     "joint4": 59,
+    //     "joint5": -23.41,
+    //     "joint6": 131,
+    //     "joint7": -121.35
+    // }
