@@ -103,7 +103,7 @@ class JointTrajectoryAction(object):
                     # Here we need to update the parsed trajectory based on the diffence in positions, scaled by the biggest diff
                     index_max = argmax(abs_error)
                     velocity_out = array(error) / abs_error[index_max]
-                    multiplier = 0.35
+                    multiplier = 0.25
                     velocity_msg = KinovaVelocity()
                     velocity_msg.joint1 = velocity_out[0] * 180 / pi * multiplier
                     velocity_msg.joint2 = velocity_out[1] * 180 / pi * multiplier

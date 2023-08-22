@@ -1,10 +1,10 @@
 #!/usr/bin/env python2
-
-# Author: Kyle DuFrene
-# Email: dufrenek@oregonstate.edu
-# Date: 6/16
-#
-#
+"""
+drawer_trial_path_planner_kinova_jayco_2.py
+Author: Luke Strohbehn
+Email: strohbel@oregonstate.edu
+Date: 08/20/2023
+"""
 
 import sys
 import subprocess
@@ -17,7 +17,6 @@ from moveit_msgs.msg import DisplayTrajectory
 from geometry_msgs.msg import PoseStamped, Pose
 import moveit_commander
 from time import sleep
-from tf.transformations import *
 import tf.transformations as tfs
 import numpy as np
 import json
@@ -27,6 +26,7 @@ import pprint
 
 class DrawerArmController:
     def __init__(self, grasp_obj_type):
+        self.grasp_obj_type = grasp_obj_type.strip().lower()
         # Joint scene JSON info
         __here__ = os.path.dirname(__file__)
         # Base environment objects
@@ -34,10 +34,11 @@ class DrawerArmController:
         with open(drawer_env_base_path, "r") as jfile:
             self.drawer_env_constraints = json.load(jfile)
         # Load handle/knob type object
-        grasp_obj_path = os.path.join(__here__, "drawer", grasp_obj_type.strip().lower()+".json")
+        grasp_obj_path = os.path.join(__here__, "drawer", self.grasp_obj_type+".json")
         with open(grasp_obj_path, "r") as jfile:
             grasp_obj = json.load(jfile)
-            self.drawer_env_constraints[grasp_obj[grasp_obj_type]["name"]] = grasp_obj[grasp_obj_type]
+            # Add handle/knob to constraints
+            self.drawer_env_constraints[grasp_obj[self.grasp_obj_type]["name"]] = grasp_obj[self.grasp_obj_type]
 
         # Load preset poses
         arm_poses_path = os.path.join(__here__,"joint_angles", "drawer.json") 
@@ -109,6 +110,7 @@ class DrawerArmController:
 
         rospy.sleep(3)
         self.joint_angle_rounded = 2
+        return
 
         
     def run_arm_to_joint_orientation(self, joint_angles):
@@ -119,7 +121,7 @@ class DrawerArmController:
         self.move_group.stop()
         self.move_group.clear_pose_targets()
         self.current_joint_values = self.move_group.get_current_joint_values()  # How to get current joint positions
-        print("Joint angles", self.current_joint_values)
+        # print("Joint angles", self.current_joint_values)
         return
 
 
@@ -136,14 +138,14 @@ class DrawerArmController:
         out = self.move_group.go(wait=True)
         self.move_group.stop()
         self.move_group.clear_pose_targets()
-        print "Reached target:\n", self.target_pose
+        # print "Reached target:\n", self.target_pose
         return
 
 
     def start_arm_sequence_callback(self, goal):
 
         self.start_arm.publish_feedback(StageFeedback(status="EXAMPLE: GRABBING OBJECT"))
-        # user_n = raw_input("bro")
+        # user_n = raw_input("bro")w
         # Do arm call here
         rospy.sleep(1.0)
         self.start_arm.set_succeeded(StageResult(result=0), text="SUCCESS")
@@ -289,42 +291,40 @@ class DrawerArmController:
         return False
 
 
-    def print_pose(self, pose):
-        pose = {
-            "position": {
-                "x": pose.position.x,
-                "y": pose.position.y,
-                "z": pose.position.z
-            },
-            "orientation": {
-                "x": pose.orientation.x,
-                "y": pose.orientation.y,
-                "z": pose.orientation.z,
-                "w": pose.orientation.w
-            }
-        }
-        pprint.pprint(pose)
-        return 
-
-
     def run(self):
-        # self.print_pose(self.start_pose)
-        # self.print_pose(self.target_pose)
+        # TODO: Set "closed" target group of gripper to be the size of the object loaded in from the json file
+    
         # Move to start position
-        self.current_pose = self.move_group.get_current_pose()
-        self.print_pose(self.current_pose.pose)
         self.run_arm_to_start_pose()
-        curr_joint_vals = self.move_group.get_current_joint_values()
-        print(curr_joint_vals)
+        # print(self.move_group.get_current_joint_values())
+        # Make sure gripper is open
+        self.move_gripper.set_named_target("Open")
+        self.move_gripper.go(wait=True)
+        # hey = raw_input("arm at start pose")
 
+        # Remove knob from scene and move into grasping position
+        self.scene.remove_world_object(name=self.grasp_obj_type)
+        self.target_pose = self.generate_pose(
+            position=self.arm_poses["grasp_pose"]["position"],
+            orientation=self.arm_poses["grasp_pose"]["orientation"]
+        )
+        self.run_arm_to_target_pose()
+        # hey = raw_input("arm at grasp pose")
 
-        # # Go to standard pull position
-        # self.current_pose = self.move_group.get_current_pose()
-        # self.target_pose = self.generate_pose([0.37, 0.3, 0.31], [90, 0, 50])
-        # self.run_arm_to_target_pose()
+        # Close gripper
+        self.move_gripper.set_named_target("Close")
+        self.move_gripper.go(wait=True)
+        # hey = raw_input("gripper closed.")
+
+        # Pull drawer back
+        self.run_arm_to_start_pose()
+
+        # Open gripper
+        self.move_gripper.set_named_target("Open")
+        self.move_gripper.go(wait=True)
+
 
         rospy.signal_shutdown("done")
-        hey = raw_input("arm at target pose")
         return
 
 
