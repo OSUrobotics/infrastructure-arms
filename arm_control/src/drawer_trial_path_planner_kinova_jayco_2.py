@@ -22,6 +22,7 @@ import numpy as np
 import json
 import os
 import pprint
+from copy import deepcopy
 
 
 class DrawerArmController:
@@ -158,38 +159,6 @@ class DrawerArmController:
         return
 
 
-    def generate_pose(self, position, orientation):
-        """Generate a pose from a position and orientation
-        @param position: position of the end effector in meters
-        @param orientation: orientation of the end effector in degrees
-        """
-        temp_pose = Pose()
-        try:
-            temp_pose.position.x = position[0]
-            temp_pose.position.y = position[1]
-            temp_pose.position.z = position[2]
-            quat = tfs.quaternion_from_euler(
-                np.radians(orientation[0]),
-                np.radians(orientation[1]),
-                np.radians(orientation[2])
-            )
-        except KeyError:
-            temp_pose.position.x = position["x"]
-            temp_pose.position.y = position["y"]
-            temp_pose.position.z = position["z"]
-            quat = tfs.quaternion_from_euler(
-                np.radians(orientation["x"]),
-                np.radians(orientation["y"]),
-                np.radians(orientation["z"])
-            )
-        temp_pose.orientation.x = quat[0]
-        temp_pose.orientation.y = quat[1]
-        temp_pose.orientation.z = quat[2]
-        temp_pose.orientation.w = quat[3]
-
-        return temp_pose
-    
-
     def _add_constraints(self, scene_objs):
         for obj in scene_objs.values():
             obj_type = obj["type"]
@@ -291,7 +260,54 @@ class DrawerArmController:
         return False
 
 
-    def run(self):
+    def generate_pose(self, position, orientation):
+        """Generate a pose from a position and orientation
+        @param position: position of the end effector in meters
+        @param orientation: orientation of the end effector in degrees
+        """
+        temp_pose = Pose()
+        try:
+            temp_pose.position.x = position[0]
+            temp_pose.position.y = position[1]
+            temp_pose.position.z = position[2]
+            quat = tfs.quaternion_from_euler(
+                np.radians(orientation[0]),
+                np.radians(orientation[1]),
+                np.radians(orientation[2])
+            )
+        except KeyError:
+            temp_pose.position.x = position["x"]
+            temp_pose.position.y = position["y"]
+            temp_pose.position.z = position["z"]
+            quat = tfs.quaternion_from_euler(
+                np.radians(orientation["x"]),
+                np.radians(orientation["y"]),
+                np.radians(orientation["z"])
+            )
+        temp_pose.orientation.x = quat[0]
+        temp_pose.orientation.y = quat[1]
+        temp_pose.orientation.z = quat[2]
+        temp_pose.orientation.w = quat[3]
+
+        return temp_pose
+    
+
+    def generate_poses_YTRANS(self, step_size=0.01, num=10, direction=1):
+        grasp_pose = self.generate_pose(
+            position=self.arm_poses["grasp_pose"]["position"],
+            orientation=self.arm_poses["grasp_pose"]["orientation"]
+        )
+
+        pose_list = np.empty(10, dtype=Pose)
+
+        for i in range(num):
+            modified_pose = deepcopy(grasp_pose)
+            modified_pose.position.y += step_size * i * direction
+            pose_list[i] = modified_pose
+        return pose_list
+
+
+    def run_once(self, pose=None):
         # TODO: Set "closed" target group of gripper to be the size of the object loaded in from the json file
     
         # Move to start position
@@ -302,19 +318,20 @@ class DrawerArmController:
         self.move_gripper.go(wait=True)
         # hey = raw_input("arm at start pose")
 
-        # Remove knob from scene and move into grasping position
+        # Remove knob from scene and move into grasping poscition
         self.scene.remove_world_object(name=self.grasp_obj_type)
-        self.target_pose = self.generate_pose(
-            position=self.arm_poses["grasp_pose"]["position"],
-            orientation=self.arm_poses["grasp_pose"]["orientation"]
-        )
+        if pose is None:
+            self.target_pose = self.generate_pose(
+                position=self.arm_poses["grasp_pose"]["position"],
+                orientation=self.arm_poses["grasp_pose"]["orientation"]
+            )
+        else:
+            self.target_pose = pose
         self.run_arm_to_target_pose()
-        # hey = raw_input("arm at grasp pose")
 
         # Close gripper
         self.move_gripper.set_named_target("Close")
         self.move_gripper.go(wait=True)
-        # hey = raw_input("gripper closed.")
 
         # Pull drawer back
         self.run_arm_to_start_pose()
@@ -323,13 +340,25 @@ class DrawerArmController:
         self.move_gripper.set_named_target("Open")
         self.move_gripper.go(wait=True)
 
+        
+        done = raw_input("Run finished.")
+        return
 
+    
+    def run_pose_list(self):
+        y_poses = self.generate_poses_YTRANS(direction=-1)
+        for i, pose in enumerate(y_poses):
+            print("Starting run number {}".format(i))
+            self.run_once(pose=pose)
+        
         rospy.signal_shutdown("done")
+        done = raw_input("Done.")
         return
 
 
 if __name__ == "__main__":
     rospy.init_node("drawer_arm_controller_what", argv=sys.argv)
     dac = DrawerArmController("knob")
-    dac.run()
+    # dac.run_once()
+    dac.run_pose_list()
     rospy.spin()
