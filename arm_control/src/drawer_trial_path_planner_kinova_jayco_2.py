@@ -350,6 +350,7 @@ class DrawerArmController:
 
         return pose_list
 
+
     def generate_poses_YROT(self, step_size=0.1, num=10, direction=1):
         pose_list = np.empty(10, dtype=Pose)
         for i in range(num):
@@ -362,6 +363,7 @@ class DrawerArmController:
 
         return pose_list
     
+
     def generate_poses_ZROT(self, step_size=0.1, num=10, direction=1):
         pose_list = np.empty(10, dtype=Pose)
         for i in range(num):
@@ -373,9 +375,6 @@ class DrawerArmController:
             )
 
         return pose_list
-
-    
-
 
 
     def run_once(self, pose=None):
@@ -428,9 +427,13 @@ class DrawerArmController:
         return
 
 
-if __name__ == "__main__":
+def main():
     rospy.init_node("drawer_arm_controller_what", argv=sys.argv)
     dac = DrawerArmController("knob")
     # dac.run_once()
     dac.run_pose_list()
     rospy.spin()
+    return
+
+if __name__ == "__main__":
+    main()
