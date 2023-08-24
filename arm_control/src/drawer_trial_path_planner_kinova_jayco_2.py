@@ -24,6 +24,8 @@ import os
 import pprint
 from copy import deepcopy
 
+from typing import List
+
 
 class DrawerArmController:
     def __init__(self, grasp_obj_type):
@@ -292,6 +294,20 @@ class DrawerArmController:
         return temp_pose
     
 
+    def generate_poses_XTRANS(self, step_size=0.01, num=10, direction=1) -> List:
+        grasp_pose = self.generate_pose(
+            position=self.arm_poses["grasp_pose"]["position"],
+            orientation=self.arm_poses["grasp_pose"]["orientation"]
+        )
+        pose_list: List = np.empty(10, dtype=Pose)
+
+        for i in range(num):
+            modified_pose = deepcopy(grasp_pose)
+            modified_pose.position.x += step_size * i * direction
+            pose_list[i] = modified_pose
+        return pose_list
+
+
     def generate_poses_YTRANS(self, step_size=0.01, num=10, direction=1):
         grasp_pose = self.generate_pose(
             position=self.arm_poses["grasp_pose"]["position"],
@@ -305,6 +321,61 @@ class DrawerArmController:
             modified_pose.position.y += step_size * i * direction
             pose_list[i] = modified_pose
         return pose_list
+    
+
+    def generate_poses_ZTRANS(self, step_size=0.01, num=10, direction=1):
+        grasp_pose = self.generate_pose(
+            position=self.arm_poses["grasp_pose"]["position"],
+            orientation=self.arm_poses["grasp_pose"]["orientation"]
+        )
+
+        pose_list = np.empty(10, dtype=Pose)
+
+        for i in range(num):
+            modified_pose = deepcopy(grasp_pose)
+            modified_pose.position.z += step_size * i * direction
+            pose_list[i] = modified_pose
+        return pose_list
+    
+
+    def generate_poses_XROT(self, step_size=0.1, num=10, direction=1):
+        pose_list = np.empty(10, dtype=Pose)
+        for i in range(num):
+            modified_pose = deepcopy(self.arm_poses["grasp_pose"])
+            modified_pose["orientation"]["x"] += step_size * i * direction
+            pose_list[i] = self.generate_pose(
+                position=self.arm_poses["grasp_pose"]["position"],
+                orientation=self.arm_poses["grasp_pose"]["orientation"]
+            )
+
+        return pose_list
+
+    def generate_poses_YROT(self, step_size=0.1, num=10, direction=1):
+        pose_list = np.empty(10, dtype=Pose)
+        for i in range(num):
+            modified_pose = deepcopy(self.arm_poses["grasp_pose"])
+            modified_pose["orientation"]["y"] += step_size * i * direction
+            pose_list[i] = self.generate_pose(
+                position=self.arm_poses["grasp_pose"]["position"],
+                orientation=self.arm_poses["grasp_pose"]["orientation"]
+            )
+
+        return pose_list
+    
+    def generate_poses_ZROT(self, step_size=0.1, num=10, direction=1):
+        pose_list = np.empty(10, dtype=Pose)
+        for i in range(num):
+            modified_pose = deepcopy(self.arm_poses["grasp_pose"])
+            modified_pose["orientation"]["z"] += step_size * i * direction
+            pose_list[i] = self.generate_pose(
+                position=self.arm_poses["grasp_pose"]["position"],
+                orientation=self.arm_poses["grasp_pose"]["orientation"]
+            )
+
+        return pose_list
+
+    
+
 
 
     def run_once(self, pose=None):
@@ -318,8 +389,9 @@ class DrawerArmController:
         self.move_gripper.go(wait=True)
         # hey = raw_input("arm at start pose")
 
-        # Remove knob from scene and move into grasping poscition
+        # Remove knob from scene
         self.scene.remove_world_object(name=self.grasp_obj_type)
+        # Generate pose or use existing, move to pose
         if pose is None:
             self.target_pose = self.generate_pose(
                 position=self.arm_poses["grasp_pose"]["position"],
