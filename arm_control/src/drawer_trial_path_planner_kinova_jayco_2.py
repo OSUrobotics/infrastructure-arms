@@ -373,20 +373,22 @@ class DrawerArmController:
         return pose_list
 
 
-    def generate_trajectory_straight_back(self, curr_pose=None):
+    def generate_trajectory_straight_back(self, curr_pose):
         end_pose = curr_pose
         end_pose.pose.position.x = self.arm_poses["start_pose"]["position"]["x"]
         trajectory, fraction = self.move_group.compute_cartesian_path(
-            waypoints=[end_pose],
+            waypoints=[end_pose.pose],
             eef_step=0.01,
             jump_threshold=2
         )
         return trajectory
 
 
-    def run_arm_to_pose_straight_back(self, curr_pose):
-        trajectory = self.generate_trajectory_straight_back(curr_pose)
-        trajectory_completed = self.move_group.execute(trajectory=trajectory, wait=True)
+    def run_arm_to_pose_straight_back(self, curr_pose=None):
+        if curr_pose is None:
+            curr_pose = self.move_group.get_current_pose()
+        traj = self.generate_trajectory_straight_back(curr_pose)
+        trajectory_completed = self.move_group.execute(traj, wait=True)
         return
 
 
