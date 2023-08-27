@@ -37,6 +37,25 @@
             "z": 0
         }
     },
+    "table_back_wall": {
+        "name": "table_back_wall",
+        "type": "box",
+        "dimensions": {
+            "x": 1.8288,
+            "y": 0.0508,
+            "z": 60
+        },
+        "position": {
+            "x": 1.3335,
+            "y": 0.4826,
+            "z": 0
+        },
+        "orientation": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+        }
+    },
     "rear_left_camera": {
         "name": "rear_left_camera",
         "type": "box",
@@ -124,7 +143,7 @@
         "position": {
             "x": 0.38735,
             "y": 0,
-            "z": 1.27635
+            "z": 1.2573
         },
         "orientation": {
             "x": 0,

@@ -24,7 +24,6 @@ import os
 import pprint
 from copy import deepcopy
 
-from typing import List
 
 
 class DrawerArmController:
@@ -294,12 +293,12 @@ class DrawerArmController:
         return temp_pose
     
 
-    def generate_poses_XTRANS(self, step_size=0.01, num=10, direction=1) -> List:
+    def generate_poses_XTRANS(self, step_size=0.01, num=10, direction=1):
         grasp_pose = self.generate_pose(
             position=self.arm_poses["grasp_pose"]["position"],
             orientation=self.arm_poses["grasp_pose"]["orientation"]
         )
-        pose_list: List = np.empty(10, dtype=Pose)
+        pose_list = np.empty(10, dtype=Pose)
 
         for i in range(num):
             modified_pose = deepcopy(grasp_pose)
@@ -338,43 +337,57 @@ class DrawerArmController:
         return pose_list
     
 
-    def generate_poses_XROT(self, step_size=0.1, num=10, direction=1):
+    def generate_poses_XROT(self, step_size=0.05, num=10, direction=1):
         pose_list = np.empty(10, dtype=Pose)
         for i in range(num):
             modified_pose = deepcopy(self.arm_poses["grasp_pose"])
-            modified_pose["orientation"]["x"] += step_size * i * direction
+            modified_pose["orientation"]["x"] += np.degrees(step_size * i * direction)
             pose_list[i] = self.generate_pose(
-                position=self.arm_poses["grasp_pose"]["position"],
-                orientation=self.arm_poses["grasp_pose"]["orientation"]
+                position=modified_pose["position"],
+                orientation=modified_pose["orientation"]
             )
-
         return pose_list
 
 
-    def generate_poses_YROT(self, step_size=0.1, num=10, direction=1):
+    def generate_poses_YROT(self, step_size=0.05, num=10, direction=1):
         pose_list = np.empty(10, dtype=Pose)
         for i in range(num):
             modified_pose = deepcopy(self.arm_poses["grasp_pose"])
-            modified_pose["orientation"]["y"] += step_size * i * direction
+            modified_pose["orientation"]["y"] += np.degrees(step_size * i * direction)
             pose_list[i] = self.generate_pose(
-                position=self.arm_poses["grasp_pose"]["position"],
-                orientation=self.arm_poses["grasp_pose"]["orientation"]
+                position=modified_pose["position"],
+                orientation=modified_pose["orientation"]
             )
-
         return pose_list
     
 
-    def generate_poses_ZROT(self, step_size=0.1, num=10, direction=1):
+    def generate_poses_ZROT(self, step_size=0.05, num=10, direction=1):
         pose_list = np.empty(10, dtype=Pose)
         for i in range(num):
             modified_pose = deepcopy(self.arm_poses["grasp_pose"])
-            modified_pose["orientation"]["z"] += step_size * i * direction
+            modified_pose["orientation"]["z"] += np.degrees(step_size * i * direction)
             pose_list[i] = self.generate_pose(
-                position=self.arm_poses["grasp_pose"]["position"],
-                orientation=self.arm_poses["grasp_pose"]["orientation"]
+                position=modified_pose["position"],
+                orientation=modified_pose["orientation"]
             )
-
         return pose_list
+
+
+    def generate_trajectory_straight_back(self, curr_pose=None):
+        end_pose = curr_pose
+        end_pose.pose.position.x = self.arm_poses["start_pose"]["position"]["x"]
+        trajectory, fraction = self.move_group.compute_cartesian_path(
+            waypoints=[end_pose],
+            eef_step=0.01,
+            jump_threshold=2
+        )
+        return trajectory
+
+
+    def run_arm_to_pose_straight_back(self, curr_pose):
+        trajectory = self.generate_trajectory_straight_back(curr_pose)
+        trajectory_completed = self.move_group.execute(trajectory=trajectory, wait=True)
+        return
 
 
     def run_once(self, pose=None):
@@ -405,20 +418,42 @@ class DrawerArmController:
         self.move_gripper.go(wait=True)
 
         # Pull drawer back
-        self.run_arm_to_start_pose()
+        curr_pose = self.move_group.get_current_pose()
+        self.run_arm_to_pose_straight_back(curr_pose)
 
         # Open gripper
         self.move_gripper.set_named_target("Open")
         self.move_gripper.go(wait=True)
 
-        
+        curr_pose = self.move_group.get_current_pose()
+        orientation = tfs.euler_from_quaternion(
+            [
+                curr_pose.pose.orientation.x,
+                curr_pose.pose.orientation.y,
+                curr_pose.pose.orientation.z,
+                curr_pose.pose.orientation.w
+            ]
+        )
+        # del curr_pose.pose.orientation.x
+        # del curr_pose.pose.orientation.y
+        # del curr_pose.pose.orientation.z
+        # del curr_pose.pose.orientation.w
+
+        curr_pose.pose.orientation.x = orientation[0]
+        curr_pose.pose.orientation.y = orientation[1]
+        curr_pose.pose.orientation.z = orientation[2]
+
+        print(curr_pose)
         done = raw_input("Run finished.")
         return
 
     
     def run_pose_list(self):
-        y_poses = self.generate_poses_YTRANS(direction=-1)
-        for i, pose in enumerate(y_poses):
+        # poses = self.generate_poses_YTRANS(direction=-1)
+        # poses = self.generate_poses_YROT()
+        poses = self.generate_poses_ZROT(direction=-1)
+        # print(poses)
+        for i, pose in enumerate(poses):
             print("Starting run number {}".format(i))
             self.run_once(pose=pose)
         
