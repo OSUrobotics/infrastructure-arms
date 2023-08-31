@@ -151,11 +151,11 @@ void KinovaFingersActionServer::actionCallback(const kinova_msgs::SetFingersPosi
             {
                 // Check if the full stall condition has been meet
                 result.fingers = current_finger_positions.constructFingersMsg();
- 		if (!arm_comm_.isStopped())
+                if (!arm_comm_.isStopped())
                 {
-                	arm_comm_.stopAPI();
-                	arm_comm_.startAPI();
-		}
+                    arm_comm_.stopAPI();
+                    arm_comm_.startAPI();
+                }
 		//why preemted, if the robot is stalled, trajectory/action failed!
                 /*
                 action_server_.setPreempted(result);

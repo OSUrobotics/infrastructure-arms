@@ -103,7 +103,7 @@ class JointTrajectoryAction(object):
                     # Here we need to update the parsed trajectory based on the diffence in positions, scaled by the biggest diff
                     index_max = argmax(abs_error)
                     velocity_out = array(error) / abs_error[index_max]
-                    multiplier = 0.01
+                    multiplier = 0.1
                     velocity_msg = KinovaVelocity()
                     velocity_msg.joint1 = velocity_out[0] * 180 / pi * multiplier
                     velocity_msg.joint2 = velocity_out[1] * 180 / pi * multiplier
@@ -172,14 +172,14 @@ class JointTrajectoryAction(object):
                     rospy.loginfo("Joint 7 in range")
 
                 # print("velocity msg: ", velocity_msg)
-                print(joint_status)
+                # print(joint_status)
                 num_there = np.count_nonzero(joint_status == True)
                 # all_zeros = all(joint_status)
                 # print("all_zeros: ", all_zeros)
-                print(velocity_msg)
+                # print(velocity_msg)
                 self.velocity_pub.publish(velocity_msg)
                 if num_there > 5:
-                    print("At least 6 joint at target.")
+                    # print("At least 6 joint at target.")
 
                     self.index += 1
                     break
@@ -188,6 +188,8 @@ class JointTrajectoryAction(object):
                 rate.sleep()
 
         goal = kinova_msgs.msg.ArmJointAnglesGoal()
+        print("Robot state before")
+        print(self.current_state)
 
         goal.angles.joint1 = self.parsed_positions[self.index - 1][0]
         goal.angles.joint2 = self.parsed_positions[self.index - 1][1]
@@ -196,6 +198,18 @@ class JointTrajectoryAction(object):
         goal.angles.joint5 = self.parsed_positions[self.index - 1][4]
         goal.angles.joint6 = self.parsed_positions[self.index - 1][5]
         goal.angles.joint7 = self.parsed_positions[self.index - 1][6]
+
+        # Fix the goal state errors with respect to the current state.
+        goal_angles = [attr for attr in dir(goal.angles) if attr.startswith("joint")]
+        for i, joint in enumerate(goal_angles):
+            goal_angle = getattr(goal.angles, joint)
+            curr_angle = getattr(self.current_state, joint)
+            # if curr_angle - goal_angle > 350:
+            _360_multiplier = round((curr_angle - goal_angle) / 360)
+            setattr(goal.angles, joint, goal_angle + _360_multiplier * 360)
+            # elif curr_angle - goal_angle < -350:
+            #     setattr(goal.angles, joint, goal_angle + 360)
+
         self.joint_client.send_goal(goal)
         if self.joint_client.wait_for_result(rospy.Duration(2.0)):
             rospy.loginfo(self.joint_client.get_result())
@@ -203,6 +217,12 @@ class JointTrajectoryAction(object):
 
             self.joint_client.cancel_all_goals()
             rospy.logerr("Did not make it to target")
+        
+        # print("goal!")
+        # print(goal)
+        # print("Robot state after")
+        # print(self.current_state)
+        # isgsn = raw_input("enter")
 
         """
         goal = kinova_msgs.msg.ArmJointAnglesGoal()
@@ -216,7 +236,7 @@ class JointTrajectoryAction(object):
         goal.angles.joint7 = angle_set[6]
         """
 
-        print("final error: ", error)
+        # print("final error: ", error)
 
         self._as.set_succeeded()
 
@@ -258,8 +278,8 @@ class JointTrajectoryAction(object):
 
     def state_error(self):
         # Compares the target state to the current state and returns the error
-        print("jt1 targ: ", self.parsed_positions[self.index][0])
-        print("jt1 current: ", self.current_state.joint1)
+        # print("jt1 targ: ", self.parsed_positions[self.index][0])
+        # print("jt1 current: ", self.current_state.joint1)
         error_out = [
             self.parsed_positions[self.index][0] - self.current_state.joint1,
             self.parsed_positions[self.index][1] - self.current_state.joint2,
@@ -269,7 +289,16 @@ class JointTrajectoryAction(object):
             self.parsed_positions[self.index][5] - self.current_state.joint6,
             self.parsed_positions[self.index][6] - self.current_state.joint7,
         ]
-        print("Pos error", error_out)
+
+        # Cause for SOME REASON some dumb paths are being made
+        for i, pos in enumerate(error_out):
+            if pos < -350:
+                error_out[i] += 360 
+            elif pos > 350:
+                error_out[i] -= 360
+
+
+        # print("Pos error", error_out)
         return error_out
 
     def state_cb(self, state):

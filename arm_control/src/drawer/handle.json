@@ -1,19 +1,18 @@
 {
     "handle": {
         "name": "handle",
-        "type": "box",
+        "type": "cylinder",
         "dimensions": {
-            "x": 0.07,
-            "y": 0.25,
-            "z": 0.07
+            "radius": 0.0381,
+            "height": 0.193675
         },
         "position": {
-            "x": 0.46,
-            "y": -0.09,
-            "z": 0.28
+            "x": 0.635,
+            "y": 0.0068375,
+            "z": 0.4099
         },
         "orientation": {
-            "x": 0,
+            "x": 90,
             "y": 0,
             "z": 0
         }

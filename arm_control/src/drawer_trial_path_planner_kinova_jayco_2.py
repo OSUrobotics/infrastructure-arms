@@ -78,6 +78,7 @@ class DrawerArmController:
         # You can easily look it up on rviz under the MotionPlanning tab
         self.move_group = moveit_commander.MoveGroupCommander("arm")
         self.move_gripper = moveit_commander.MoveGroupCommander("gripper")
+        self.move_group.set_num_planning_attempts(3)
 
         rospy.wait_for_service("/apply_planning_scene", 10.0)
         rospy.wait_for_service("/get_planning_scene", 10.0)
@@ -150,6 +151,7 @@ class DrawerArmController:
         # user_n = raw_input("bro")w
         # Do arm call here
         rospy.sleep(1.0)
+        self.run_once()
         self.start_arm.set_succeeded(StageResult(result=0), text="SUCCESS")
         return
 
@@ -391,29 +393,34 @@ class DrawerArmController:
         trajectory_completed = self.move_group.execute(traj, wait=True)
         return
 
+    def run_arm_to_grasp_pose(self):
+        trajectory, fraction = self.move_group.compute_cartesian_path(
+            waypoints=[self.arm_poses["grasp_pose"].pose],
+            eef_step=0.01,
+            jump_threshold=2
+        )
+        trajectory_completed = self.move_group.execute(trajectory, wait=True)
+        return
 
-    def run_once(self, pose=None):
-        # TODO: Set "closed" target group of gripper to be the size of the object loaded in from the json file
-    
+
+    def run_once(self, pose=None):  
         # Move to start position
         self.run_arm_to_start_pose()
-        # print(self.move_group.get_current_joint_values())
         # Make sure gripper is open
         self.move_gripper.set_named_target("Open")
         self.move_gripper.go(wait=True)
-        # hey = raw_input("arm at start pose")
-
         # Remove knob from scene
         self.scene.remove_world_object(name=self.grasp_obj_type)
         # Generate pose or use existing, move to pose
-        if pose is None:
-            self.target_pose = self.generate_pose(
-                position=self.arm_poses["grasp_pose"]["position"],
-                orientation=self.arm_poses["grasp_pose"]["orientation"]
-            )
-        else:
-            self.target_pose = pose
-        self.run_arm_to_target_pose()
+        # if pose is None:
+        #     self.target_pose = self.generate_pose(
+        #         position=self.arm_poses["grasp_pose"]["position"],
+        #         orientation=self.arm_poses["grasp_pose"]["orientation"]
+        #     )
+        # else:
+        #     self.target_pose = pose
+        # self.run_arm_to_target_pose()
+        self.run_arm_to_grasp_pose()
 
         # Close gripper
         self.move_gripper.set_named_target("Close")
@@ -426,27 +433,6 @@ class DrawerArmController:
         # Open gripper
         self.move_gripper.set_named_target("Open")
         self.move_gripper.go(wait=True)
-
-        curr_pose = self.move_group.get_current_pose()
-        orientation = tfs.euler_from_quaternion(
-            [
-                curr_pose.pose.orientation.x,
-                curr_pose.pose.orientation.y,
-                curr_pose.pose.orientation.z,
-                curr_pose.pose.orientation.w
-            ]
-        )
-        # del curr_pose.pose.orientation.x
-        # del curr_pose.pose.orientation.y
-        # del curr_pose.pose.orientation.z
-        # del curr_pose.pose.orientation.w
-
-        curr_pose.pose.orientation.x = orientation[0]
-        curr_pose.pose.orientation.y = orientation[1]
-        curr_pose.pose.orientation.z = orientation[2]
-
-        print(curr_pose)
-        done = raw_input("Run finished.")
         return
 
     
@@ -459,16 +445,19 @@ class DrawerArmController:
             print("Starting run number {}".format(i))
             self.run_once(pose=pose)
         
-        rospy.signal_shutdown("done")
-        done = raw_input("Done.")
+        
         return
 
 
 def main():
     rospy.init_node("drawer_arm_controller_what", argv=sys.argv)
-    dac = DrawerArmController("knob")
+    # dac = DrawerArmController("knob")
+    dac = DrawerArmController("handle")
     # dac.run_once()
-    dac.run_pose_list()
+    # dac.run_pose_list()
+    # rospy.signal_shutdown("done")
+    # done = raw_input("Done.")
+    
     rospy.spin()
     return
 
