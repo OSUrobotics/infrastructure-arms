@@ -1,0 +1,20 @@
+{
+    "knob": {
+        "name": "knob",
+        "type": "cylinder",
+        "dimensions": {
+            "radius": 0.0381508,
+            "height": 0.070104
+        },
+        "position": {
+            "x": 0.6985,
+            "y": 0,
+            "z": 0.4810125
+        },
+        "orientation": {
+            "x": 0,
+            "y": 90,
+            "z": 0
+        }
+    }
+}

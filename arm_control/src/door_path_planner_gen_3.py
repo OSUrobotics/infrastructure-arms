@@ -1,9 +1,9 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 """
-drawer_trial_path_planner_kinova_jayco_2.py
-Author: Luke Strohbehn
-Email: strohbel@oregonstate.edu
-Date: 08/20/2023
+door_path_planner_gen_3.py
+Author: Kyle DuFrene
+Email: dufrenek@oregonstate.edu
+Date: 09/04/2023
 """
 
 import sys
@@ -12,6 +12,7 @@ import rospy
 import actionlib
 import time
 from infrastructure_msgs.msg import StageAction, StageGoal, StageFeedback, StageResult, ArmTrialMetadata
+import std_msgs.msg
 from moveit_msgs.srv import GetPlanningScene, ApplyPlanningScene
 from moveit_msgs.msg import DisplayTrajectory
 from geometry_msgs.msg import PoseStamped, Pose
@@ -26,24 +27,25 @@ from copy import deepcopy
 
 
 
-class DrawerArmController:
+
+class DoorArmController:
     def __init__(self, grasp_obj_type):
         self.grasp_obj_type = grasp_obj_type.strip().lower()
         # Joint scene JSON info
         __here__ = os.path.dirname(__file__)
         # Base environment objects
-        drawer_env_base_path = os.path.join(__here__, "drawer", "drawer_env_base.json")
-        with open(drawer_env_base_path, "r") as jfile:
-            self.drawer_env_constraints = json.load(jfile)
+        door_env_base_path = os.path.join(__here__, "door", "door_env_base.json")
+        with open(door_env_base_path, "r") as jfile:
+            self.door_env_constraints = json.load(jfile)
         # Load handle/knob type object
-        grasp_obj_path = os.path.join(__here__, "drawer", self.grasp_obj_type+".json")
+        grasp_obj_path = os.path.join(__here__, "door", self.grasp_obj_type+".json")
         with open(grasp_obj_path, "r") as jfile:
             grasp_obj = json.load(jfile)
             # Add handle/knob to constraints
-            self.drawer_env_constraints[grasp_obj[self.grasp_obj_type]["name"]] = grasp_obj[self.grasp_obj_type]
+            self.door_env_constraints[grasp_obj[self.grasp_obj_type]["name"]] = grasp_obj[self.grasp_obj_type]
 
         # Load preset poses
-        arm_poses_path = os.path.join(__here__,"joint_angles", "drawer.json") 
+        arm_poses_path = os.path.join(__here__,"joint_angles", "door.json") 
         with open(arm_poses_path, "r") as jfile:
             self.arm_poses = json.load(jfile)
 
@@ -53,77 +55,75 @@ class DrawerArmController:
 
         # initializing actionservers
         self.start_arm = actionlib.SimpleActionServer(
-            "start_arm_sequence", StageAction, self.start_arm_sequence_callback, False
-        )
+            "start_arm_sequence", StageAction, self.start_arm_sequence_callback, False)
         self.start_arm.start()
         # print(real_robot)
-        real_robot = True
-        # To read from redirected ROS Topic (Gazebo launch use)
-        if real_robot:
-            joint_state_topic = ["joint_states:=/j2s7s300_driver/out/joint_state"]
-            moveit_commander.roscpp_initialize(joint_state_topic)
-            # rospy.init_node('move_kinova', anonymous=False)
-            moveit_commander.roscpp_initialize(sys.argv)
+        
+        moveit_commander.roscpp_initialize(sys.argv)
+        try:
+            print("namespace")
+            print(rospy.get_namespace())
+            #self.is_gripper_present = rospy.get_param("my_gen3" + "is_gripper_present", False)
+            self.is_gripper_present = True
+            if self.is_gripper_present:
+                print("here1")
+                gripper_joint_names = rospy.get_param("my_gen3" + "gripper_joint_names", [])
+                self.gripper_joint_name = gripper_joint_names[0]
+                print("here")
+            else:
+                gripper_joint_name = ""
+            self.degrees_of_freedom = rospy.get_param("my_gen3" + "degrees_of_freedom", 7)
+
+            # Create the MoveItInterface necessary objects
+            arm_group_name = "arm"
+            self.robot = moveit_commander.RobotCommander("robot_description")
+            self.scene = moveit_commander.PlanningSceneInterface(ns="my_gen3")
+            self.arm_group = moveit_commander.MoveGroupCommander("arm", ns="my_gen3")
+            self.display_trajectory_publisher = rospy.Publisher("my_gen3" + 'arm_group/display_planned_path',
+                                                            moveit_msgs.msg.DisplayTrajectory,
+                                                            queue_size=20)
+            if self.is_gripper_present:
+                gripper_group_name = "gripper"
+                self.gripper_group = moveit_commander.MoveGroupCommander(gripper_group_name, ns="my_gen3")
+        
+            print("made it here")
+
+            self.arm_group.set_num_planning_attempts(3)
+            self.rate = rospy.Rate(10)
+            self.arm_group.allow_replanning(1)
+
+            # Add constraint areas
+            self._add_constraints(self.door_env_constraints)
+            rospy.loginfo("Added scene constraints.")
+
+            # Start pose
+            self.start_pose = list(map(
+                lambda k: self.arm_poses["initial_joint_position"][k],
+                sorted(self.arm_poses["initial_joint_position"].keys())
+            ))
+            
+            # self.start_pose = self.generate_pose(
+            #     position = self.arm_poses["start_pose"]["position"],
+            #     orientation = self.arm_poses["start_pose"]["orientation"]
+            # )
+            
+            self.target_pose = self.start_pose
+            self.pose_list = []
+            self.move_dist_from_pull_release = 0.1
+
+            
+            self.joint_angle_rounded = 2
+        except Exception as e:
+            print (e)
+            self.is_init_success = False
         else:
-            joint_state_topic = ["joint_states:=/j2s7s300/joint_states"]
-            moveit_commander.roscpp_initialize(joint_state_topic)
-            # rospy.init_node('move_kinova', anonymous=False)
-            moveit_commander.roscpp_initialize(sys.argv)
-
-        # Define robot using RobotCommander. Provided robot info such as
-        # kinematic model and current joint state
-        self.robot = moveit_commander.RobotCommander()
-
-        # Setting the world
-        self.scene = moveit_commander.PlanningSceneInterface(synchronous=True)
-
-        # Define the planning group for the arm you are using
-        # You can easily look it up on rviz under the MotionPlanning tab
-        self.move_group = moveit_commander.MoveGroupCommander("arm")
-        self.move_gripper = moveit_commander.MoveGroupCommander("gripper")
-        self.move_group.set_num_planning_attempts(3)
-
-        rospy.wait_for_service("/apply_planning_scene", 10.0)
-        rospy.wait_for_service("/get_planning_scene", 10.0)
-
-        self.apply_scene = rospy.ServiceProxy("/apply_planning_scene", ApplyPlanningScene)
-        self.get_scene = rospy.ServiceProxy("/get_planning_scene", GetPlanningScene)
-        # rospy.sleep(2)
-
-        # To see the trajectory
-        self.disp = DisplayTrajectory()
-
-        self.disp.trajectory_start = self.robot.get_current_state()
-
-        self.rate = rospy.Rate(10)
-
-        self.move_group.allow_replanning(1)
-
-        # Add constraint areas
-        self._add_constraints(self.drawer_env_constraints)
-        rospy.loginfo("Added scene constraints.")
-
-        # Start pose
-        self.start_pose = list(map(
-            lambda k: self.arm_poses["initial_joint_position"][k],
-            sorted(self.arm_poses["initial_joint_position"].keys())
-        ))
-        # self.start_pose = self.generate_pose(
-        #     position = self.arm_poses["start_pose"]["position"],
-        #     orientation = self.arm_poses["start_pose"]["orientation"]
-        # )
-        self.target_pose = self.start_pose
-        self.pose_list = []
-        self.move_dist_from_pull_release = 0.1
-
-        rospy.sleep(3)
-        self.joint_angle_rounded = 2
+            self.is_init_success = True   
         return      
    
 
     def start_arm_sequence_callback(self, goal):
         # Start arm publisher
-        self.start_arm.publish_feedback(StageFeedback(status="EXAMPLE: GRABBING OBJECT"))
+        self.start_arm.publish_feedback(StageFeedback(status="GRABBING OBJECT"))
         
         rospy.sleep(1.0)
         try:
@@ -131,8 +131,8 @@ class DrawerArmController:
             run_pose = self.pose_list.pop(0)
             # Publish metadata
             metadata_msg = ArmTrialMetadata()
-            metadata_msg.arm = "Kinova Jaco2"
-            metadata_msg.gripper = "Jaco2 Gripper"
+            metadata_msg.arm = "Kinova Gen 3"
+            metadata_msg.gripper = "RobotIQ 2F-85"
             metadata_msg.grasp_pose = run_pose
             metadata_msg.pull_type = "linear_x"
             self.metadata_pub.publish(metadata_msg)
@@ -140,11 +140,11 @@ class DrawerArmController:
             self.run_once(run_pose)
             self.start_arm.set_succeeded(StageResult(result=0), text="SUCCESS")
         except IndexError:
-            print("Trial sequence ended, no more poses to run.")
+            rospy.logerr("Trial sequence ended, no more poses to run.")
         return
 
 
-    def force_callback(self, force)
+    def force_callback(self, force):
         self.trial_force = force
         return
 
@@ -369,7 +369,7 @@ class DrawerArmController:
 
 
     def generate_trajectory_away_from_grasp_obj(self):
-        curr_pose = self.move_group.get_current_pose()
+        curr_pose = self.arm_group.get_current_pose()
         print(curr_pose)
         orientation = list(tfs.euler_from_quaternion([
             curr_pose.pose.orientation.x,
@@ -396,7 +396,7 @@ class DrawerArmController:
         end_pose.pose.position.x = self.arm_poses["start_pose"]["position"]["x"]
         fraction = 0
         while fraction < 0.99:
-            trajectory, fraction = self.move_group.compute_cartesian_path(
+            trajectory, fraction = self.arm_group.compute_cartesian_path(
                 waypoints=[end_pose.pose],
                 eef_step=0.01,
                 jump_threshold=2
@@ -406,20 +406,20 @@ class DrawerArmController:
 
     def run_arm_to_pose_straight_back(self, curr_pose=None):
         if curr_pose is None:
-            curr_pose = self.move_group.get_current_pose()
+            curr_pose = self.arm_group.get_current_pose()
         traj = self.generate_trajectory_straight_back(curr_pose)
-        trajectory_completed = self.move_group.execute(traj, wait=True)
+        trajectory_completed = self.arm_group.execute(traj, wait=True)
         return
 
 
     def run_arm_to_joint_orientation(self, joint_angles):
         """Run the arm to a specific joint orientation"""
-        self.move_group.set_joint_value_target(joint_angles)
-        self.move_group.plan()
-        self.move_group.go(wait=True)
-        self.move_group.stop()
-        self.move_group.clear_pose_targets()
-        self.current_joint_values = self.move_group.get_current_joint_values()  # How to get current joint positions
+        self.arm_group.set_joint_value_target(joint_angles)
+        self.arm_group.plan()
+        self.arm_group.go(wait=True)
+        self.arm_group.stop()
+        self.arm_group.clear_pose_targets()
+        self.current_joint_values = self.arm_group.get_current_joint_values()  # How to get current joint positions
         # print("Joint angles", self.current_joint_values)
         return
 
@@ -433,10 +433,10 @@ class DrawerArmController:
 
     def run_arm_to_target_pose(self):
         """Run the end effector to a specific position and orientation"""
-        self.move_group.set_pose_target(self.target_pose)
-        out = self.move_group.go(wait=True)
-        self.move_group.stop()
-        self.move_group.clear_pose_targets()
+        self.arm_group.set_pose_target(self.target_pose)
+        out = self.arm_group.go(wait=True)
+        self.arm_group.stop()
+        self.arm_group.clear_pose_targets()
         # print "Reached target:\n", self.target_pose
         return
 
@@ -452,21 +452,21 @@ class DrawerArmController:
         fraction = 0
         planning_start_time = time.time()
         while fraction <= 0.99:
-            trajectory, fraction = self.move_group.compute_cartesian_path(
+            trajectory, fraction = self.arm_group.compute_cartesian_path(
                 waypoints=[grasp_pose],
                 eef_step=0.01,
                 jump_threshold=2
             )
             if time.time() - planning_start_time > 60:
                 return 1 # return error, move to next
-        trajectory_completed = self.move_group.execute(trajectory, wait=True)
+        trajectory_completed = self.arm_group.execute(trajectory, wait=True)
         return 0
 
 
     def run_once(self, pose=None):
         # Make sure gripper is open
-        self.move_gripper.set_named_target("Open")
-        self.move_gripper.go(wait=True)
+        self.gripper_group.set_named_target("Open")
+        self.gripper_group.go(wait=True)
 
         # Move to start position
         self.run_arm_to_start_pose()
@@ -479,38 +479,38 @@ class DrawerArmController:
             )
 
         # Add handle constraint
-        self._add_constraints({"obj": self.drawer_env_constraints[self.grasp_obj_type]})
+        self._add_constraints({"obj": self.door_env_constraints[self.grasp_obj_type]})
 
         # Run to grasping pose
         plan_fail = self.run_arm_to_cartesian_pose(pose)
         if plan_fail:
             print("Planning for grasp failed. Moving to next pose.")
             # Open gripper
-            self.move_gripper.set_named_target("Open")
-            self.move_gripper.go(wait=False)
+            self.gripper_group.set_named_target("Open")
+            self.gripper_group.go(wait=False)
             time.sleep(3)
-            self.move_gripper.stop()
+            self.gripper_group.stop()
             return
 
         # Remove handle/knob from scene
         self.scene.remove_world_object(name=self.grasp_obj_type)
 
         # Close gripper
-        self.move_gripper.set_named_target("Close")
-        self.move_gripper.go(wait=False)
+        self.gripper_group.set_named_target("Close")
+        self.gripper_group.go(wait=False)
         time.sleep(3)
-        self.move_gripper.stop()
+        self.gripper_group.stop()
 
 
-        # Pull drawer back
-        curr_pose = self.move_group.get_current_pose()
+        # Pull door back
+        curr_pose = self.arm_group.get_current_pose()
         self.run_arm_to_pose_straight_back(curr_pose)
 
         # Open gripper
-        self.move_gripper.set_named_target("Open")
-        self.move_gripper.go(wait=False)
+        self.gripper_group.set_named_target("Open")
+        self.gripper_group.go(wait=False)
         time.sleep(3)
-        self.move_gripper.stop()
+        self.gripper_group.stop()
 
         # Move arm out of grasp object space
         move_away_pose = self.generate_trajectory_away_from_grasp_obj()
@@ -538,21 +538,21 @@ class DrawerArmController:
 
     def open_close_gripper(self):
         while True:
-            self.move_gripper.set_named_target("Open")
-            self.move_gripper.go(wait=False)
+            self.gripper_group.set_named_target("Open")
+            self.gripper_group.go(wait=False)
             time.sleep(2)
             raw_input("Press enter to close gripper.")
-            self.move_gripper.set_named_target("Close")
-            self.move_gripper.go(wait=False)
+            self.gripper_group.set_named_target("Close")
+            self.gripper_group.go(wait=False)
             time.sleep(2)
             raw_input("Press enter to open gripper.")
         return
 
 
 def main():
-    rospy.init_node("drawer_arm_controller", argv=sys.argv)
-    # dac = DrawerArmController("knob")
-    dac = DrawerArmController("handle")
+    rospy.init_node("door_arm_controller_gen_3", argv=sys.argv)
+    
+    dac = DoorArmController("handle")
 
     dac.pose_list = list(dac.generate_poses_YROT(direction=1))
     # dac.pose_list = list(dac.generate_poses_ZROT(direction=-1))

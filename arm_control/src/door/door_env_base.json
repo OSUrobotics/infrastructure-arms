@@ -1,0 +1,154 @@
+{
+    "drawer": {
+        "name": "drawer",
+        "type": "box",
+        "dimensions": {
+            "x": 0.1,
+            "y": 0.4572,
+            "z": 0.625475
+        },
+        "position": {
+            "x": 0.758825,
+            "y": 0,
+            "z": 0.3127375 
+        },
+        "orientation": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+        }
+    },
+    "table": {
+        "name": "table",
+        "type": "box",
+        "dimensions": {
+            "x": 2.00,
+            "y": 2.00,
+            "z": 0.1
+        },
+        "position": {
+            "x": 0,
+            "y": 0,
+            "z": -0.05
+        },
+        "orientation": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+        }
+    },
+    "table_back_wall": {
+        "name": "table_back_wall",
+        "type": "box",
+        "dimensions": {
+            "x": 1.8288,
+            "y": 0.0508,
+            "z": 1.25
+        },
+        "position": {
+            "x": 1.3335,
+            "y": 0.4826,
+            "z": 0.625
+        },
+        "orientation": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+        }
+    },
+    "rear_left_camera": {
+        "name": "rear_left_camera",
+        "type": "box",
+        "dimensions": {
+            "x": 0.1,
+            "y": 0.25,
+            "z": 1.0
+        },
+        "position": {
+            "x": -0.3048,
+            "y": 0.4445,
+            "z": 0.5
+        },
+        "orientation": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+        }
+    },
+    "rear_right_camera": {
+        "name": "rear_right_camera",
+        "type": "box",
+        "dimensions": {
+            "x": 0.1,
+            "y": 0.25,
+            "z": 1.0
+        },
+        "position": {
+            "x": -0.3048,
+            "y": -0.5207,
+            "z": 0.5
+        },
+        "orientation": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+        }
+    },
+    "overhead_light": {
+        "name": "overhead_ight",
+        "type": "box",
+        "dimensions": {
+            "x": 0.2,
+            "y": 2.0,
+            "z": 0.1
+        },
+        "position": {
+            "x": 1.3716,
+            "y": -0.2794,
+            "z": 1.1
+        },
+        "orientation": {
+            "x": 0,
+            "y": -15,
+            "z": -90
+        }
+    },
+    "front_left_pillar": {
+        "name": "front_left_pillar",
+        "type": "box",
+        "dimensions": {
+            "x": 0.03175,
+            "y": 0.0635,
+            "z": 1.27635
+        },
+        "position": {
+            "x": 0.38735,
+            "y": 0.346075,
+            "z": 0.638175
+        },
+        "orientation": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+        }
+    },
+    "overhead_light_arm": {
+        "name": "overhead_light_arm",
+        "type": "box",
+        "dimensions": {
+            "x": 0.0428625,
+            "y": 0.7747,
+            "z": 0.0381
+        },
+        "position": {
+            "x": 0.38735,
+            "y": 0,
+            "z": 1.2573
+        },
+        "orientation": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+        }
+    }
+}
