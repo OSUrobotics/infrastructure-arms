@@ -11,7 +11,7 @@ import subprocess
 import rospy
 import actionlib
 import time
-from infrastructure_msgs.msg import StageAction, StageGoal, StageFeedback, StageResult
+from infrastructure_msgs.msg import StageAction, StageGoal, StageFeedback, StageResult, ArmTrialMetadata
 from moveit_msgs.srv import GetPlanningScene, ApplyPlanningScene
 from moveit_msgs.msg import DisplayTrajectory
 from geometry_msgs.msg import PoseStamped, Pose
@@ -46,6 +46,9 @@ class DrawerArmController:
         arm_poses_path = os.path.join(__here__,"joint_angles", "drawer.json") 
         with open(arm_poses_path, "r") as jfile:
             self.arm_poses = json.load(jfile)
+
+        # Initialize Metadata publisher
+        self.metadata_pub = rospy.Publisher("/arm_trial_metadata", ArmTrialMetadata, queue_size=10)
         
 
         # initializing actionservers
@@ -110,49 +113,34 @@ class DrawerArmController:
         #     orientation = self.arm_poses["start_pose"]["orientation"]
         # )
         self.target_pose = self.start_pose
+        self.pose_list = []
+        self.move_dist_from_pull_release = 0.1
 
         rospy.sleep(3)
         self.joint_angle_rounded = 2
-        return
-
-        
-    def run_arm_to_joint_orientation(self, joint_angles):
-        """Run the arm to a specific joint orientation"""
-        self.move_group.set_joint_value_target(joint_angles)
-        self.move_group.plan()
-        self.move_group.go(wait=True)
-        self.move_group.stop()
-        self.move_group.clear_pose_targets()
-        self.current_joint_values = self.move_group.get_current_joint_values()  # How to get current joint positions
-        # print("Joint angles", self.current_joint_values)
-        return
-
-
-    def run_arm_to_start_pose(self):
-        """Run the arm to the starting pose"""
-        return self.run_arm_to_joint_orientation(self.start_pose)
-        # self.target_pose = self.start_pose
-        # return self.run_arm_to_target_pose()
-
-
-    def run_arm_to_target_pose(self):
-        """Run the end effector to a specific position and orientation"""
-        self.move_group.set_pose_target(self.target_pose)
-        out = self.move_group.go(wait=True)
-        self.move_group.stop()
-        self.move_group.clear_pose_targets()
-        # print "Reached target:\n", self.target_pose
-        return
-
+        return      
+   
 
     def start_arm_sequence_callback(self, goal):
-
+        # Start arm publisher
         self.start_arm.publish_feedback(StageFeedback(status="EXAMPLE: GRABBING OBJECT"))
-        # user_n = raw_input("bro")w
-        # Do arm call here
+        
         rospy.sleep(1.0)
-        self.run_once()
-        self.start_arm.set_succeeded(StageResult(result=0), text="SUCCESS")
+        try:
+            # Pop new grasp pose from list
+            run_pose = self.pose_list.pop(0)
+            # Publish metadata
+            metadata_msg = ArmTrialMetadata()
+            metadata_msg.arm = "Kinova Jaco2"
+            metadata_msg.gripper = "Jaco2 Gripper"
+            metadata_msg.grasp_pose = run_pose
+            metadata_msg.pull_type = "linear_x"
+            self.metadata_pub.publish(metadata_msg)
+            
+            self.run_once(run_pose)
+            self.start_arm.set_succeeded(StageResult(result=0), text="SUCCESS")
+        except IndexError:
+            print("Trial sequence ended, no more poses to run.")
         return
 
 
@@ -375,14 +363,39 @@ class DrawerArmController:
         return pose_list
 
 
+    def generate_trajectory_away_from_grasp_obj(self):
+        curr_pose = self.move_group.get_current_pose()
+        print(curr_pose)
+        orientation = list(tfs.euler_from_quaternion([
+            curr_pose.pose.orientation.x,
+            curr_pose.pose.orientation.y,
+            curr_pose.pose.orientation.z,
+            curr_pose.pose.orientation.w
+        ]))
+        orientation[0] = orientation[0] - np.pi/2
+        orientation[1] = orientation[1] - np.pi/2
+        orientation[2] = orientation[2] - np.pi/2
+        print(orientation)
+        # Generate new pose 10cm away from pose in the opposite dir of orientation
+        new_pose = deepcopy(curr_pose)
+        new_pose.pose.position.x -= self.move_dist_from_pull_release * np.cos(orientation[1]) * np.sin(orientation[2])
+        new_pose.pose.position.y -= self.move_dist_from_pull_release * np.cos(orientation[1]) * np.cos(orientation[2])
+        new_pose.pose.position.z -= self.move_dist_from_pull_release * np.sin(orientation[1])
+        print(new_pose)
+        raw_input("Check")
+        return new_pose
+
+
     def generate_trajectory_straight_back(self, curr_pose):
         end_pose = curr_pose
         end_pose.pose.position.x = self.arm_poses["start_pose"]["position"]["x"]
-        trajectory, fraction = self.move_group.compute_cartesian_path(
-            waypoints=[end_pose.pose],
-            eef_step=0.01,
-            jump_threshold=2
-        )
+        fraction = 0
+        while fraction < 0.99:
+            trajectory, fraction = self.move_group.compute_cartesian_path(
+                waypoints=[end_pose.pose],
+                eef_step=0.01,
+                jump_threshold=2
+            )
         return trajectory
 
 
@@ -393,38 +406,91 @@ class DrawerArmController:
         trajectory_completed = self.move_group.execute(traj, wait=True)
         return
 
-    def run_arm_to_grasp_pose(self):
-        trajectory, fraction = self.move_group.compute_cartesian_path(
-            waypoints=[self.arm_poses["grasp_pose"].pose],
-            eef_step=0.01,
-            jump_threshold=2
-        )
-        trajectory_completed = self.move_group.execute(trajectory, wait=True)
+
+    def run_arm_to_joint_orientation(self, joint_angles):
+        """Run the arm to a specific joint orientation"""
+        self.move_group.set_joint_value_target(joint_angles)
+        self.move_group.plan()
+        self.move_group.go(wait=True)
+        self.move_group.stop()
+        self.move_group.clear_pose_targets()
+        self.current_joint_values = self.move_group.get_current_joint_values()  # How to get current joint positions
+        # print("Joint angles", self.current_joint_values)
         return
 
 
-    def run_once(self, pose=None):  
-        # Move to start position
-        self.run_arm_to_start_pose()
+    def run_arm_to_start_pose(self):
+        """Run the arm to the starting pose"""
+        return self.run_arm_to_joint_orientation(self.start_pose)
+        # self.target_pose = self.start_pose
+        # return self.run_arm_to_target_pose()
+
+
+    def run_arm_to_target_pose(self):
+        """Run the end effector to a specific position and orientation"""
+        self.move_group.set_pose_target(self.target_pose)
+        out = self.move_group.go(wait=True)
+        self.move_group.stop()
+        self.move_group.clear_pose_targets()
+        # print "Reached target:\n", self.target_pose
+        return
+
+
+    def run_arm_to_cartesian_pose(self, pose=None):
+        if pose is None:
+            grasp_pose = self.generate_pose(
+                position=self.arm_poses["grasp_pose"]["position"],
+                orientation=self.arm_poses["grasp_pose"]["orientation"]
+            )
+        else:
+            grasp_pose = pose
+        fraction = 0
+        planning_start_time = time.time()
+        while fraction <= 0.99:
+            trajectory, fraction = self.move_group.compute_cartesian_path(
+                waypoints=[grasp_pose],
+                eef_step=0.01,
+                jump_threshold=2
+            )
+            if time.time() - planning_start_time > 60:
+                return 1 # return error, move to next
+        trajectory_completed = self.move_group.execute(trajectory, wait=True)
+        return 0
+
+
+    def run_once(self, pose=None):
         # Make sure gripper is open
         self.move_gripper.set_named_target("Open")
         self.move_gripper.go(wait=True)
-        # Remove knob from scene
-        self.scene.remove_world_object(name=self.grasp_obj_type)
+
+        # Move to start position
+        self.run_arm_to_start_pose()
+        
         # Generate pose or use existing, move to pose
-        # if pose is None:
-        #     self.target_pose = self.generate_pose(
-        #         position=self.arm_poses["grasp_pose"]["position"],
-        #         orientation=self.arm_poses["grasp_pose"]["orientation"]
-        #     )
-        # else:
-        #     self.target_pose = pose
-        # self.run_arm_to_target_pose()
-        self.run_arm_to_grasp_pose()
+        if pose is None:
+            pose = self.generate_pose(
+                position=self.arm_poses["grasp_pose"]["position"],
+                orientation=self.arm_poses["grasp_pose"]["orientation"]
+            )
+
+        # Add handle constraint
+        self._add_constraints({"obj": self.drawer_env_constraints[self.grasp_obj_type]})
+
+        # Run to grasping pose
+        plan_fail = self.run_arm_to_cartesian_pose(pose)
+        if plan_fail:
+            print("Planning for grasp failed. Moving to next pose.")
+            return
+
+        # Remove handle/knob from scene
+        self.scene.remove_world_object(name=self.grasp_obj_type)
 
         # Close gripper
         self.move_gripper.set_named_target("Close")
-        self.move_gripper.go(wait=True)
+        self.move_gripper.go(wait=False)
+        time.sleep(3)
+        self.move_gripper.stop()
+
 
         # Pull drawer back
         curr_pose = self.move_group.get_current_pose()
@@ -432,32 +498,56 @@ class DrawerArmController:
 
         # Open gripper
         self.move_gripper.set_named_target("Open")
-        self.move_gripper.go(wait=True)
+        self.move_gripper.go(wait=False)
+        time.sleep(3)
+        self.move_gripper.stop()
+
+        # Move arm out of grasp object space
+        move_away_pose = self.generate_trajectory_away_from_grasp_obj()
+        plan_fail = self.run_arm_to_cartesian_pose(pose=move_away_pose.pose)
+        if plan_fail:
+            print("Planning for grasp failed. Moving to next pose.")
+            return
         return
 
     
     def run_pose_list(self):
         # poses = self.generate_poses_YTRANS(direction=-1)
         # poses = self.generate_poses_YROT()
-        poses = self.generate_poses_ZROT(direction=-1)
+        # poses = self.generate_poses_ZROT(direction=-1)
+        poses = self.generate_poses_YROT(direction=-1)
         # print(poses)
+
         for i, pose in enumerate(poses):
             print("Starting run number {}".format(i))
+            print(pose)
             self.run_once(pose=pose)
-        
-        
+            raw_input("Press enter for next run.")       
+        return
+
+
+    def open_close_gripper(self):
+        while True:
+            self.move_gripper.set_named_target("Open")
+            self.move_gripper.go(wait=False)
+            time.sleep(2)
+            raw_input("Press enter to close gripper.")
+            self.move_gripper.set_named_target("Close")
+            self.move_gripper.go(wait=False)
+            time.sleep(2)
+            raw_input("Press enter to open gripper.")
         return
 
 
 def main():
-    rospy.init_node("drawer_arm_controller_what", argv=sys.argv)
+    rospy.init_node("drawer_arm_controller", argv=sys.argv)
     # dac = DrawerArmController("knob")
     dac = DrawerArmController("handle")
-    # dac.run_once()
+
+    dac.pose_list = list(dac.generate_poses_YROT(direction=1))
+    # dac.pose_list = list(dac.generate_poses_ZROT(direction=-1))
     # dac.run_pose_list()
-    # rospy.signal_shutdown("done")
-    # done = raw_input("Done.")
-    
+    # dac.run_once()
     rospy.spin()
     return
 
