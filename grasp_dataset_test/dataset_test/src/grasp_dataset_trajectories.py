@@ -139,7 +139,7 @@ class GraspDatasetTrajectories(object):
       # # #  self.start_arm_sequence_callback("hji")
 
       # # # Get straight to #3
-      for i in range(5):
+      for i in range(14):
         self.pose_list.pop()
 
 
