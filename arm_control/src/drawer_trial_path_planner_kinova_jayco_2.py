@@ -47,9 +47,9 @@ class DrawerArmController:
         with open(arm_poses_path, "r") as jfile:
             self.arm_poses = json.load(jfile)
 
-        # Initialize Metadata publisher
+        # Initialize Metadata publisher, reset metadata subscriber
         self.metadata_pub = rospy.Publisher("/arm_trial_metadata", ArmTrialMetadata, queue_size=10)
-        
+        self.reset_metadata_sub = rospy.Subscriber('/reset_metadata', std_msgs.msg.Float32, self.force_callback)
 
         # initializing actionservers
         self.start_arm = actionlib.SimpleActionServer(
@@ -141,6 +141,11 @@ class DrawerArmController:
             self.start_arm.set_succeeded(StageResult(result=0), text="SUCCESS")
         except IndexError:
             print("Trial sequence ended, no more poses to run.")
+        return
+
+
+    def force_callback(self, force)
+        self.trial_force = force
         return
 
 
@@ -480,6 +485,11 @@ class DrawerArmController:
         plan_fail = self.run_arm_to_cartesian_pose(pose)
         if plan_fail:
             print("Planning for grasp failed. Moving to next pose.")
+            # Open gripper
+            self.move_gripper.set_named_target("Open")
+            self.move_gripper.go(wait=False)
+            time.sleep(3)
+            self.move_gripper.stop()
             return
 
         # Remove handle/knob from scene
