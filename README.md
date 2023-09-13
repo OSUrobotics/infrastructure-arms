@@ -20,6 +20,9 @@ roslaunch infrastructure_flexbe_behaviors start_test.launch collect_data:=true n
 
 roslaunch kinova_vision kinova_vision_rgbd.launch device:=192.168.2.200
 
+
+roslaunch infrastructure_flexbe_behaviors start_test.launch collect_data:=true name:=door_dataset_gen3_knob_straight video:=true robot_jointState_topic:=/my_gen3/base_feedback/joint_state
+
 General layout
 * Arm Control
   * Example control files for each arm
