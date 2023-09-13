@@ -3,13 +3,13 @@
         "name": "knob",
         "type": "cylinder",
         "dimensions": {
-            "radius": 0.0381508,
-            "height": 0.070104
+            "radius": 0.031,
+            "height": 0.075
         },
         "position": {
-            "x": 0.6985,
-            "y": 0,
-            "z": 0.4810125
+            "x": 0.645,
+            "y": -0.062,
+            "z": 0.347
         },
         "orientation": {
             "x": 0,

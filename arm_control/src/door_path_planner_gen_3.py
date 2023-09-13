@@ -24,6 +24,9 @@ import json
 import os
 import pprint
 from copy import deepcopy
+from tf.transformations import *
+import math
+#rosrun arm_control door_path_planner_gen_3.py __ns:=my_gen3
 
 
 
@@ -52,6 +55,8 @@ class DoorArmController:
         # Initialize Metadata publisher, reset metadata subscriber
         self.metadata_pub = rospy.Publisher("/arm_trial_metadata", ArmTrialMetadata, queue_size=10)
         self.reset_metadata_sub = rospy.Subscriber('/reset_metadata', std_msgs.msg.Float32, self.force_callback)
+        
+        self.trial_force = 0.0
 
         # initializing actionservers
         self.start_arm = actionlib.SimpleActionServer(
@@ -63,29 +68,28 @@ class DoorArmController:
         try:
             print("namespace")
             print(rospy.get_namespace())
+            namespace = "/my_gen3/"
+            
             #self.is_gripper_present = rospy.get_param("my_gen3" + "is_gripper_present", False)
             self.is_gripper_present = True
             if self.is_gripper_present:
                 print("here1")
-                gripper_joint_names = rospy.get_param("my_gen3" + "gripper_joint_names", [])
-                self.gripper_joint_name = gripper_joint_names[0]
+                self.gripper_joint_name = "finger_joint"
                 print("here")
             else:
                 gripper_joint_name = ""
-            self.degrees_of_freedom = rospy.get_param("my_gen3" + "degrees_of_freedom", 7)
+            self.degrees_of_freedom = rospy.get_param(namespace + "degrees_of_freedom", 7)
 
             # Create the MoveItInterface necessary objects
             arm_group_name = "arm"
-            self.robot = moveit_commander.RobotCommander("robot_description")
-            self.scene = moveit_commander.PlanningSceneInterface(ns="my_gen3")
-            self.arm_group = moveit_commander.MoveGroupCommander("arm", ns="my_gen3")
-            self.display_trajectory_publisher = rospy.Publisher("my_gen3" + 'arm_group/display_planned_path',
-                                                            moveit_msgs.msg.DisplayTrajectory,
-                                                            queue_size=20)
+            self.robot = moveit_commander.RobotCommander()
+            self.scene = moveit_commander.PlanningSceneInterface(ns=namespace)
+            self.arm_group = moveit_commander.MoveGroupCommander(arm_group_name, ns=namespace)
+            self.display_trajectory_publisher = rospy.Publisher(namespace + 'move_group/display_planned_path', DisplayTrajectory, queue_size=20)
             if self.is_gripper_present:
                 gripper_group_name = "gripper"
-                self.gripper_group = moveit_commander.MoveGroupCommander(gripper_group_name, ns="my_gen3")
-        
+                self.gripper_group = moveit_commander.MoveGroupCommander(gripper_group_name, ns=namespace)
+            print("here3")
             print("made it here")
 
             self.arm_group.set_num_planning_attempts(3)
@@ -95,12 +99,98 @@ class DoorArmController:
             # Add constraint areas
             self._add_constraints(self.door_env_constraints)
             rospy.loginfo("Added scene constraints.")
+            
+            self.generation_pose = Pose()
+            self.generation_pose.position.x = .57
+            self.generation_pose.position.y = 0.0
+            self.generation_pose.position.z = .43
+            self.generation_pose.orientation.x = .5
+            self.generation_pose.orientation.y = .5
+            self.generation_pose.orientation.z = .5
+            self.generation_pose.orientation.w = .5
 
             # Start pose
             self.start_pose = list(map(
                 lambda k: self.arm_poses["initial_joint_position"][k],
                 sorted(self.arm_poses["initial_joint_position"].keys())
             ))
+            # Start pose
+            self.start_pose_handle = list(map(
+                lambda k: self.arm_poses["initial_joint_position_handle"][k],
+                sorted(self.arm_poses["initial_joint_position_handle"].keys())
+            ))
+            self.start_pose_handle_2 = list(map(
+                lambda k: self.arm_poses["initial_joint_position_handle_2"][k],
+                sorted(self.arm_poses["initial_joint_position_handle_2"].keys())
+            ))
+            self.start_pose_handle_3 = list(map(
+                lambda k: self.arm_poses["initial_joint_position_handle_3"][k],
+                sorted(self.arm_poses["initial_joint_position_handle_3"].keys())
+            ))
+            self.start_pose_handle_4 = list(map(
+                lambda k: self.arm_poses["initial_joint_position_handle_4"][k],
+                sorted(self.arm_poses["initial_joint_position_handle_4"].keys())
+            ))
+            self.safe_pose = list(map(
+                lambda k: self.arm_poses["safe_home"][k],
+                sorted(self.arm_poses["safe_home"].keys())
+            ))
+            
+            self.top_start = list(map(
+                lambda k: self.arm_poses["top_start"][k],
+                sorted(self.arm_poses["top_start"].keys())
+            ))
+            print("wtf")
+            
+            self.grasp_pose = self.generate_pose(
+                position=self.arm_poses["grasp_pose_1"]["position"],
+                orientation=self.arm_poses["grasp_pose_1"]["orientation"]
+            )
+            self.grasp_pose_2 = self.generate_pose(
+                position=self.arm_poses["grasp_pose_2"]["position"],
+                orientation=self.arm_poses["grasp_pose_2"]["orientation"]
+            )
+            self.grasp_pose_3 = self.generate_pose(
+                position=self.arm_poses["grasp_pose_3"]["position"],
+                orientation=self.arm_poses["grasp_pose_3"]["orientation"]
+            )
+            self.grasp_pose_4 = self.generate_pose(
+                position=self.arm_poses["grasp_pose_4"]["position"],
+                orientation=self.arm_poses["grasp_pose_4"]["orientation"]
+            )
+            self.grasp_pose_5 = self.generate_pose(
+                position=self.arm_poses["grasp_pose_5"]["position"],
+                orientation=self.arm_poses["grasp_pose_5"]["orientation"]
+            )
+            
+            self.grasp_pose_1_handle = self.generate_pose(
+                position=self.arm_poses["grasp_pose_1_handle"]["position"],
+                orientation=self.arm_poses["grasp_pose_1_handle"]["orientation"]
+            )
+            
+            self.grasp_pose_2_handle = self.generate_pose(
+                position=self.arm_poses["grasp_pose_2_handle"]["position"],
+                orientation=self.arm_poses["grasp_pose_2_handle"]["orientation"]
+            )
+            
+            self.grasp_pose_3_handle = self.generate_pose(
+                position=self.arm_poses["grasp_pose_3_handle"]["position"],
+                orientation=self.arm_poses["grasp_pose_3_handle"]["orientation"]
+            )
+            self.grasp_pose_4_handle = self.generate_pose(
+                position=self.arm_poses["grasp_pose_4_handle"]["position"],
+                orientation=self.arm_poses["grasp_pose_4_handle"]["orientation"]
+            )
+            self.grasp_pose_5_handle = self.generate_pose(
+                position=self.arm_poses["grasp_pose_5_handle"]["position"],
+                orientation=self.arm_poses["grasp_pose_5_handle"]["orientation"]
+            )
+            
+
+            
+            
+            
+            
             
             # self.start_pose = self.generate_pose(
             #     position = self.arm_poses["start_pose"]["position"],
@@ -114,38 +204,450 @@ class DoorArmController:
             
             self.joint_angle_rounded = 2
         except Exception as e:
+            print("Failure!!!")
             print (e)
             self.is_init_success = False
         else:
             self.is_init_success = True   
-        return      
+            
+        pose = self.arm_group.get_current_pose("tool_frame")
+        print(pose)
+        angles = self.arm_group.get_current_joint_values()
+        print(angles)
+        
+        # Try going to start pose
+        # self.run_arm_to_joint_orientation(self.top_start)
+        # #inp = raw_input("enter")
+        # #self.run_arm_to_cartesian_pose(self.grasp_pose)
+        # #self.run_arm_to_joint_orientation(self.safe_pose)
+        # #print(self.grasp_pose)
+        # self.run_arm_to_cartesian_pose(self.grasp_pose_3)
+        
+        # pose_list = self.gen_circle_poses(self.grasp_pose_3, width = .213, handle_out=.067)
+        # self.scene.remove_world_object(name=self.grasp_obj_type)
+        # self.scene.remove_world_object(name="door")
+        # self.scene.remove_world_object(name="left_curtain")
+        # self.reach_gripper_position(1)
+        # #inp = raw_input("enter")
+        
+        # self.run_waypoints(pose_list)
+        # rospy.sleep(1)
+        # self.reach_gripper_position(0)
+        # self.run_arm_to_joint_orientation(self.safe_pose)
+        # self.straight_on_grasp_and_pull_2()
+        # self.vertical_grasp_and_pull()
+        # self.straight_on_grasp_and_pull_3()
+        #self.run_arm_to_joint_orientation(self.start_pose_handle)
+        #self.run_arm_to_target_pose(self.grasp_pose_3_handle)
+        # self.handle_5()
+        
+        # 1 is out
+        # 2 is in 
+        # 3 is side 
+        
+        """ knob pose
+        pose: 
+  position: 
+    x: 0.601378616716
+    y: -0.0621195141493
+    z: 0.340827749487
+  orientation: 
+    x: 0.500508909719
+    y: 0.498794766712
+    z: 0.499671359958
+    w: 0.501022099343
+    
+    -0.6929657009151962, 1.329408604012605, -1.463292503071668, -2.4904106185973953, -2.915493472835374, -1.7544037070926652, -2.968902103232477
+    """
+        return 
+    def handle_5(self):
+        self._add_constraints(self.door_env_constraints)
+        self.scene.remove_world_object(name="left_curtain")
+        #self._add_constraint_box(box={"name":"front_temp","dimensions":{"x":.1,"y":2.0,"z":2.0},"position":{"x":.6,"y":0.0,"z":1.0},"orientation":{"x":0.0,"y":0.0,"z":0.0}})
+        #self._add_constraint_box(box={"name":"side_temp","dimensions":{"x":2.0,"y":.1,"z":2.0},"position":{"x":0.0,"y":.7,"z":1.0},"orientation":{"x":0.0,"y":0.0,"z":0.0}})
+        self.reach_gripper_position(0)
+        # inp = raw_input("enter")
+        self.run_arm_to_joint_orientation(self.start_pose_handle_4)
+        # inp = raw_input("enter")
+        #self.scene.remove_world_object("front_temp")
+        #self.scene.remove_world_object("side_temp")
+        #self._add_constraints(self.door_env_constraints)
+        
+        #self.run_arm_to_joint_orientation(self.start_pose)
+        
+        #self.run_arm_to_cartesian_pose(self.grasp_pose)
+        #self.run_arm_to_joint_orientation(self.safe_pose)
+        #print(self.grasp_pose)
+        self.run_arm_to_target_pose(self.grasp_pose_5_handle) #[-1.0102797469014826, 0.8313158542803766, -2.0282589588304942, -2.250081635506464, -0.640769874078515, 0.7996882197536226, 1.225106033077706]
+        # sleep(8)
+        # angles = self.arm_group.get_current_joint_values()
+        # print(angles)
+        # sys.exit()
+        
+        pose_list = self.gen_circle_poses(self.grasp_pose_5_handle, width = .21, handle_out=.103)
+        self.scene.remove_world_object(name=self.grasp_obj_type)
+        self.scene.remove_world_object(name="door")
+        self.scene.remove_world_object(name="left_curtain")
+        self.reach_gripper_position(1)
+        #inp = raw_input("enter")
+        
+        self.run_waypoints(pose_list)
+        #rospy.sleep(1)
+        self.reach_gripper_position(0)
+        
+    def handle_4(self):
+        self._add_constraints(self.door_env_constraints)
+        self.scene.remove_world_object(name="left_curtain")
+        #self._add_constraint_box(box={"name":"front_temp","dimensions":{"x":.1,"y":2.0,"z":2.0},"position":{"x":.6,"y":0.0,"z":1.0},"orientation":{"x":0.0,"y":0.0,"z":0.0}})
+        #self._add_constraint_box(box={"name":"side_temp","dimensions":{"x":2.0,"y":.1,"z":2.0},"position":{"x":0.0,"y":.7,"z":1.0},"orientation":{"x":0.0,"y":0.0,"z":0.0}})
+        self.reach_gripper_position(0)
+        # inp = raw_input("enter")
+        self.run_arm_to_joint_orientation(self.start_pose_handle_3)
+        # inp = raw_input("enter")
+        #self.scene.remove_world_object("front_temp")
+        #self.scene.remove_world_object("side_temp")
+        #self._add_constraints(self.door_env_constraints)
+        
+        #self.run_arm_to_joint_orientation(self.start_pose)
+        
+        #self.run_arm_to_cartesian_pose(self.grasp_pose)
+        #self.run_arm_to_joint_orientation(self.safe_pose)
+        #print(self.grasp_pose)
+        self.run_arm_to_target_pose(self.grasp_pose_4_handle) #[-1.0102797469014826, 0.8313158542803766, -2.0282589588304942, -2.250081635506464, -0.640769874078515, 0.7996882197536226, 1.225106033077706]
+        
+        
+        
+        pose_list = self.gen_circle_poses(self.grasp_pose_4_handle, width = .21, handle_out=.1)
+        self.scene.remove_world_object(name=self.grasp_obj_type)
+        self.scene.remove_world_object(name="door")
+        self.scene.remove_world_object(name="left_curtain")
+        self.reach_gripper_position(1)
+        #inp = raw_input("enter")
+        
+        self.run_waypoints(pose_list)
+        #rospy.sleep(1)
+        self.reach_gripper_position(0)
+    
+    def handle_3(self):
+        self._add_constraints(self.door_env_constraints)
+        self.scene.remove_world_object(name="left_curtain")
+        #self._add_constraint_box(box={"name":"front_temp","dimensions":{"x":.1,"y":2.0,"z":2.0},"position":{"x":.6,"y":0.0,"z":1.0},"orientation":{"x":0.0,"y":0.0,"z":0.0}})
+        #self._add_constraint_box(box={"name":"side_temp","dimensions":{"x":2.0,"y":.1,"z":2.0},"position":{"x":0.0,"y":.7,"z":1.0},"orientation":{"x":0.0,"y":0.0,"z":0.0}})
+        self.reach_gripper_position(0)
+        # inp = raw_input("enter")
+        self.run_arm_to_joint_orientation(self.start_pose_handle)
+        # inp = raw_input("enter")
+        #self.scene.remove_world_object("front_temp")
+        #self.scene.remove_world_object("side_temp")
+        #self._add_constraints(self.door_env_constraints)
+        
+        #self.run_arm_to_joint_orientation(self.start_pose)
+        
+        #self.run_arm_to_cartesian_pose(self.grasp_pose)
+        #self.run_arm_to_joint_orientation(self.safe_pose)
+        #print(self.grasp_pose)
+        self.run_arm_to_cartesian_pose(self.grasp_pose_3_handle)
+        
+        
+        
+        pose_list = self.gen_circle_poses(self.grasp_pose_3_handle, width = .20, handle_out=.12)
+        self.scene.remove_world_object(name=self.grasp_obj_type)
+        self.scene.remove_world_object(name="door")
+        self.scene.remove_world_object(name="left_curtain")
+        self.reach_gripper_position(1)
+        #inp = raw_input("enter")
+        
+        self.run_waypoints(pose_list)
+        #rospy.sleep(1)
+        self.reach_gripper_position(0)
+    
+    def handle_2(self):
+        self._add_constraints(self.door_env_constraints)
+        self.scene.remove_world_object(name="left_curtain")
+        #self._add_constraint_box(box={"name":"front_temp","dimensions":{"x":.1,"y":2.0,"z":2.0},"position":{"x":.6,"y":0.0,"z":1.0},"orientation":{"x":0.0,"y":0.0,"z":0.0}})
+        #self._add_constraint_box(box={"name":"side_temp","dimensions":{"x":2.0,"y":.1,"z":2.0},"position":{"x":0.0,"y":.7,"z":1.0},"orientation":{"x":0.0,"y":0.0,"z":0.0}})
+        self.reach_gripper_position(0)
+        # inp = raw_input("enter")
+        self.run_arm_to_joint_orientation(self.start_pose_handle)
+        # inp = raw_input("enter")
+        #self.scene.remove_world_object("front_temp")
+        #self.scene.remove_world_object("side_temp")
+        self._add_constraints(self.door_env_constraints)
+        
+        #self.run_arm_to_joint_orientation(self.start_pose)
+        
+        #self.run_arm_to_cartesian_pose(self.grasp_pose)
+        #self.run_arm_to_joint_orientation(self.safe_pose)
+        #print(self.grasp_pose)
+        self.run_arm_to_cartesian_pose(self.grasp_pose_2_handle)
+        
+        
+        pose_list = self.gen_circle_poses(self.grasp_pose_2_handle, width = .21, handle_out=.103)
+        self.scene.remove_world_object(name=self.grasp_obj_type)
+        self.scene.remove_world_object(name="door")
+        self.scene.remove_world_object(name="left_curtain")
+        self.reach_gripper_position(1)
+        #inp = raw_input("enter")
+        
+        self.run_waypoints(pose_list)
+        #rospy.sleep(1)
+        self.reach_gripper_position(0)
+        
+    def handle_1(self):
+        self._add_constraints(self.door_env_constraints)
+        self.scene.remove_world_object(name="left_curtain")
+        #self._add_constraint_box(box={"name":"front_temp","dimensions":{"x":.1,"y":2.0,"z":2.0},"position":{"x":.6,"y":0.0,"z":1.0},"orientation":{"x":0.0,"y":0.0,"z":0.0}})
+        #self._add_constraint_box(box={"name":"side_temp","dimensions":{"x":2.0,"y":.1,"z":2.0},"position":{"x":0.0,"y":.7,"z":1.0},"orientation":{"x":0.0,"y":0.0,"z":0.0}})
+        self.reach_gripper_position(0)
+        # inp = raw_input("enter")
+        self.run_arm_to_joint_orientation(self.start_pose_handle)
+        # inp = raw_input("enter")
+        #self.scene.remove_world_object("front_temp")
+        #self.scene.remove_world_object("side_temp")
+        self._add_constraints(self.door_env_constraints)
+        
+        #self.run_arm_to_joint_orientation(self.start_pose)
+        
+        #self.run_arm_to_cartesian_pose(self.grasp_pose)
+        #self.run_arm_to_joint_orientation(self.safe_pose)
+        #print(self.grasp_pose)
+        self.run_arm_to_target_pose(self.grasp_pose_1_handle)
+        
+        pose_list = self.gen_circle_poses(self.grasp_pose_1_handle, width = .21, handle_out=.140)
+        self.scene.remove_world_object(name=self.grasp_obj_type)
+        self.scene.remove_world_object(name="door")
+        self.scene.remove_world_object(name="left_curtain")
+        self.reach_gripper_position(1)
+        #inp = raw_input("enter")
+        
+        self.run_waypoints(pose_list)
+        #rospy.sleep(1)
+        self.reach_gripper_position(0)
+    
+    def straight_on_grasp_and_pull_3(self):
+        self._add_constraint_box(box={"name":"front_temp","dimensions":{"x":.1,"y":2.0,"z":2.0},"position":{"x":.62,"y":0.0,"z":1.0},"orientation":{"x":0.0,"y":0.0,"z":0.0}})
+        self._add_constraint_box(box={"name":"side_temp","dimensions":{"x":2.0,"y":.1,"z":2.0},"position":{"x":0.0,"y":.7,"z":1.0},"orientation":{"x":0.0,"y":0.0,"z":0.0}})
+        self.reach_gripper_position(0)
+        self.run_arm_to_joint_orientation(self.safe_pose)
+        self.scene.remove_world_object("front_temp")
+        self.scene.remove_world_object("side_temp")
+        self._add_constraints(self.door_env_constraints)
+        
+        #self.run_arm_to_joint_orientation(self.start_pose)
+        
+        #self.run_arm_to_cartesian_pose(self.grasp_pose)
+        #self.run_arm_to_joint_orientation(self.safe_pose)
+        #print(self.grasp_pose)
+        self.run_arm_to_target_pose(self.grasp_pose_5)
+        
+        pose_list = self.gen_circle_poses(self.grasp_pose_5, width = .208, handle_out=.085)
+        self.scene.remove_world_object(name=self.grasp_obj_type)
+        self.scene.remove_world_object(name="door")
+        self.scene.remove_world_object(name="left_curtain")
+        self.reach_gripper_position(1)
+        #inp = raw_input("enter")
+        
+        self.run_waypoints(pose_list)
+        #rospy.sleep(1)
+        self.reach_gripper_position(0)
+    
+    def vertical_grasp_and_pull(self):
+        self._add_constraint_box(box={"name":"front_temp","dimensions":{"x":.1,"y":2.0,"z":2.0},"position":{"x":.62,"y":0.0,"z":1.0},"orientation":{"x":0.0,"y":0.0,"z":0.0}})
+        self._add_constraint_box(box={"name":"side_temp","dimensions":{"x":2.0,"y":.1,"z":2.0},"position":{"x":0.0,"y":.7,"z":1.0},"orientation":{"x":0.0,"y":0.0,"z":0.0}})
+        self.reach_gripper_position(0)
+        self.run_arm_to_joint_orientation(self.safe_pose)
+        self.scene.remove_world_object("front_temp")
+        self.scene.remove_world_object("side_temp")
+        self._add_constraints(self.door_env_constraints)
+        
+        self.run_arm_to_joint_orientation(self.start_pose)
+        self.run_arm_to_cartesian_pose(self.grasp_pose_4)
+        pose_list = self.gen_circle_poses(self.grasp_pose_4, width = .208, handle_out=.085)
+        self.scene.remove_world_object(name=self.grasp_obj_type)
+        self.scene.remove_world_object(name="door")
+        self.scene.remove_world_object(name="left_curtain")
+        self.reach_gripper_position(1)
+        #inp = raw_input("enter")
+        
+        self.run_waypoints(pose_list)
+        self.reach_gripper_position(0)
+        
+    
+    def top_down_grasp_and_pull(self):
+        self._add_constraint_box(box={"name":"front_temp","dimensions":{"x":.1,"y":2.0,"z":2.0},"position":{"x":.62,"y":0.0,"z":1.0},"orientation":{"x":0.0,"y":0.0,"z":0.0}})
+        self._add_constraint_box(box={"name":"side_temp","dimensions":{"x":2.0,"y":.1,"z":2.0},"position":{"x":0.0,"y":.58,"z":1.0},"orientation":{"x":0.0,"y":0.0,"z":0.0}})
+        self.reach_gripper_position(0)
+        self.run_arm_to_joint_orientation(self.safe_pose)
+        self.scene.remove_world_object("front_temp")
+        self.scene.remove_world_object("side_temp")
+        self._add_constraints(self.door_env_constraints)
+        
+        self.run_arm_to_joint_orientation(self.top_start)
+        
+        #self.run_arm_to_cartesian_pose(self.grasp_pose)
+        #self.run_arm_to_joint_orientation(self.safe_pose)
+        #print(self.grasp_pose)
+        self.run_arm_to_cartesian_pose(self.grasp_pose_3)
+        
+        pose_list = self.gen_circle_poses(self.grasp_pose_3, width = .213, handle_out=.067)
+        self.scene.remove_world_object(name=self.grasp_obj_type)
+        self.scene.remove_world_object(name="door")
+        self.scene.remove_world_object(name="left_curtain")
+        self.reach_gripper_position(1)
+        #inp = raw_input("enter")
+        
+        self.run_waypoints(pose_list)
+        #rospy.sleep(1)
+        self.reach_gripper_position(0)
+    
+    def straight_on_grasp_and_pull(self):
+        
+        self._add_constraint_box(box={"name":"front_temp","dimensions":{"x":.1,"y":2.0,"z":2.0},"position":{"x":.62,"y":0.0,"z":1.0},"orientation":{"x":0.0,"y":0.0,"z":0.0}})
+        self._add_constraint_box(box={"name":"side_temp","dimensions":{"x":2.0,"y":.1,"z":2.0},"position":{"x":0.0,"y":.58,"z":1.0},"orientation":{"x":0.0,"y":0.0,"z":0.0}})
+        self.reach_gripper_position(0)
+        self.run_arm_to_joint_orientation(self.safe_pose)
+        self.scene.remove_world_object("front_temp")
+        self.scene.remove_world_object("side_temp")
+        self._add_constraints(self.door_env_constraints)
+        
+        self.run_arm_to_joint_orientation(self.start_pose)
+        
+        #self.run_arm_to_cartesian_pose(self.grasp_pose)
+        #self.run_arm_to_joint_orientation(self.safe_pose)
+        #print(self.grasp_pose)
+        self.run_arm_to_cartesian_pose(self.grasp_pose)
+        
+        pose_list = self.gen_circle_poses(self.grasp_pose)
+        self.scene.remove_world_object(name=self.grasp_obj_type)
+        self.scene.remove_world_object(name="door")
+        self.scene.remove_world_object(name="left_curtain")
+        self.reach_gripper_position(1)
+        #inp = raw_input("enter")
+        
+        self.run_waypoints(pose_list)
+        #rospy.sleep(1)
+        self.reach_gripper_position(0)
+        
+    def straight_on_grasp_and_pull_2(self):
+        self._add_constraint_box(box={"name":"front_temp","dimensions":{"x":.1,"y":2.0,"z":2.0},"position":{"x":.62,"y":0.0,"z":1.0},"orientation":{"x":0.0,"y":0.0,"z":0.0}})
+        self._add_constraint_box(box={"name":"side_temp","dimensions":{"x":2.0,"y":.1,"z":2.0},"position":{"x":0.0,"y":.64,"z":1.0},"orientation":{"x":0.0,"y":0.0,"z":0.0}})
+        self.reach_gripper_position(0)
+        self.run_arm_to_joint_orientation(self.safe_pose)
+        self.scene.remove_world_object("front_temp")
+        self.scene.remove_world_object("side_temp")
+        self._add_constraints(self.door_env_constraints)
+        
+        self.run_arm_to_joint_orientation(self.start_pose)
+        
+        #self.run_arm_to_cartesian_pose(self.grasp_pose)
+        #self.run_arm_to_joint_orientation(self.safe_pose)
+        #print(self.grasp_pose)
+        self.run_arm_to_cartesian_pose(self.grasp_pose_2)
+        
+        pose_list = self.gen_circle_poses(self.grasp_pose_2, handle_out=.091)
+        self.scene.remove_world_object(name=self.grasp_obj_type)
+        self.scene.remove_world_object(name="door")
+        self.scene.remove_world_object(name="left_curtain")
+        self.reach_gripper_position(1)
+        #inp = raw_input("enter")
+        
+        self.run_waypoints(pose_list)
+        #rospy.sleep(1)
+        self.reach_gripper_position(0)
+    
+    def reach_gripper_position(self, relative_position):
+        #gripper_group = self.gripper_group
+        
+        # We only have to move this joint because all others are mimic!
+        gripper_joint = self.robot.get_joint(self.gripper_joint_name)
+        gripper_max_absolute_pos = gripper_joint.max_bound()
+        gripper_min_absolute_pos = gripper_joint.min_bound()
+        try:
+            val = gripper_joint.move(relative_position * (gripper_max_absolute_pos - gripper_min_absolute_pos) + gripper_min_absolute_pos, True)
+            return val
+        except:
+            return False 
+    
+    def gen_circle_poses(self, start_gasp_pose, width = .2, handle_out = .05):
+        # Build a pose array of arm moving in 1/2 circle from initial grasp
+        
+        # Start pose 
+        # width to handle, distance to center of grasp
+        number_poses = 8
+        angle_to_open = math.pi/2.5# -.32 # in radians
+        angle_per = angle_to_open / (number_poses-1)
+        door_width = math.hypot(width, handle_out) #.221
+        initial_angle = math.atan(handle_out/width) #.32 # radians
+        x_init = math.cos(initial_angle)*door_width
+        y_init = math.sin(initial_angle)*door_width
+        
+        pose_list = [deepcopy(start_gasp_pose)]
+        for i in range(number_poses-1):
+            start_pose = deepcopy(start_gasp_pose)
+            x = math.cos(angle_per*(i+1)+initial_angle)*door_width
+            y = math.sin(angle_per*(i+1)+initial_angle)*door_width
+            
+            
+            # dist_apart = 2*door_width*math.sin((angle_per*(i+1))/2)
+            # print("Dist ", dist_apart)
+            
+            # delta_x = math.cos(angle_per*(i+1)/2)*dist_apart*2
+            start_pose.position.x -= (y - y_init)
+            # delta_y = math.sin(angle_per*(i+1)/2)*dist_apart*2
+            start_pose.position.y += (x_init-x)
+            
+            q_angle = quaternion_from_euler(0, 0, -angle_per*(i+1)) 
+            current_q = [start_pose.orientation.x, start_pose.orientation.y, start_pose.orientation.z, start_pose.orientation.w]
+            q_new = quaternion_multiply(q_angle, current_q)
+            start_pose.orientation.x = q_new[0]
+            start_pose.orientation.y = q_new[1]
+            start_pose.orientation.z = q_new[2]
+            start_pose.orientation.w = q_new[3]
+            
+            
+            
+            
+            pose_list.append(deepcopy(start_pose))
+        return pose_list
+            
+            
+        
+        
    
 
     def start_arm_sequence_callback(self, goal):
         # Start arm publisher
         self.start_arm.publish_feedback(StageFeedback(status="GRABBING OBJECT"))
         
-        rospy.sleep(1.0)
+        #rospy.sleep(1.0)
+        
+        
         try:
-            # Pop new grasp pose from list
-            run_pose = self.pose_list.pop(0)
+            # Create pose stamped msg
+            pose_msg = PoseStamped()
+            pose_msg.pose = self.grasp_pose_5_handle
             # Publish metadata
             metadata_msg = ArmTrialMetadata()
             metadata_msg.arm = "Kinova Gen 3"
             metadata_msg.gripper = "RobotIQ 2F-85"
-            metadata_msg.grasp_pose = run_pose
-            metadata_msg.pull_type = "linear_x"
-            self.metadata_pub.publish(metadata_msg)
+            metadata_msg.grasp_pose = pose_msg
+            metadata_msg.pull_type = "normal"
+            print(self.trial_force)
+            metadata_msg.rotation_or_force = float(self.trial_force)
             
-            self.run_once(run_pose)
-            self.start_arm.set_succeeded(StageResult(result=0), text="SUCCESS")
+            
+            self.handle_5()
+            self.metadata_pub.publish(metadata_msg)
+            self.start_arm.set_succeeded(StageResult(result=0), text="SUCCESS") 
+            
         except IndexError:
             rospy.logerr("Trial sequence ended, no more poses to run.")
         return
 
 
     def force_callback(self, force):
-        self.trial_force = force
+        rospy.loginfo("Recieved force input")
+        self.trial_force = force.data
         return
 
 
@@ -162,12 +664,13 @@ class DoorArmController:
                 self._add_constraint_box(obj)
             elif obj_type == "cylinder":
                 self._add_constraint_cylinder(obj)
-
+    
+    
 
     def _add_constraint_box(self, box):
         """Add a constraint box to the scene"""
         box_pose = PoseStamped()
-        box_pose.header.frame_id = "world"
+        box_pose.header.frame_id = "base_link"
         box_name = box["name"]
         box_size = (
             box["dimensions"]["x"],
@@ -193,7 +696,10 @@ class DoorArmController:
         box_pose.pose.orientation.z = quat[2]
         box_pose.pose.orientation.w = quat[3]
         
+        rospy.loginfo("Adding " + box_name)
+        
         self.scene.add_box(box_name, box_pose, size=box_size)
+        rospy.sleep(.1)
 
         if self._check_object_presence(box_name):
             return True
@@ -204,7 +710,7 @@ class DoorArmController:
     def _add_constraint_cylinder(self, cyl):
         """Add a constraint cylinder to the scene"""
         cyl_pose = PoseStamped()
-        cyl_pose.header.frame_id = "world"
+        cyl_pose.header.frame_id = "base_link"
         cyl_name = cyl["name"]
         cyl_height = cyl["dimensions"]["height"]
         cyl_radius = cyl["dimensions"]["radius"]
@@ -227,8 +733,9 @@ class DoorArmController:
         cyl_pose.pose.orientation.y = quat[1]
         cyl_pose.pose.orientation.z = quat[2]
         cyl_pose.pose.orientation.w = quat[3]
-
+        rospy.loginfo("Adding " + cyl_name)
         self.scene.add_cylinder(cyl_name, cyl_pose, cyl_height, cyl_radius)
+        rospy.sleep(.1)
 
         if self._check_object_presence(cyl_name):
             return True
@@ -239,7 +746,7 @@ class DoorArmController:
     def _check_object_presence(self, obj_name):
         """Check to see if the constraint object was successfully added"""
         start_time = time_now = rospy.get_time()
-        while (time_now - start_time < 5) and not rospy.is_shutdown():
+        while (time_now - start_time < 2) and not rospy.is_shutdown():
             # Test if the object is in the scene
             # NOTE: attaching teh box will remove it from known_objects
             is_known = obj_name in self.scene.get_known_object_names()
@@ -261,25 +768,27 @@ class DoorArmController:
         @param position: position of the end effector in meters
         @param orientation: orientation of the end effector in degrees
         """
+        print("Generating pose")
         temp_pose = Pose()
+        current_q = [self.generation_pose.orientation.x, self.generation_pose.orientation.y, self.generation_pose.orientation.z, self.generation_pose.orientation.w]
         try:
             temp_pose.position.x = position[0]
             temp_pose.position.y = position[1]
             temp_pose.position.z = position[2]
-            quat = tfs.quaternion_from_euler(
+            quat = quaternion_multiply(tfs.quaternion_from_euler(
                 np.radians(orientation[0]),
                 np.radians(orientation[1]),
                 np.radians(orientation[2])
-            )
+            ), current_q)
         except KeyError:
             temp_pose.position.x = position["x"]
             temp_pose.position.y = position["y"]
             temp_pose.position.z = position["z"]
-            quat = tfs.quaternion_from_euler(
+            quat = quaternion_multiply(tfs.quaternion_from_euler(
                 np.radians(orientation["x"]),
                 np.radians(orientation["y"]),
                 np.radians(orientation["z"])
-            )
+            ), current_q)
         temp_pose.orientation.x = quat[0]
         temp_pose.orientation.y = quat[1]
         temp_pose.orientation.z = quat[2]
@@ -431,9 +940,9 @@ class DoorArmController:
         # return self.run_arm_to_target_pose()
 
 
-    def run_arm_to_target_pose(self):
+    def run_arm_to_target_pose(self, target):
         """Run the end effector to a specific position and orientation"""
-        self.arm_group.set_pose_target(self.target_pose)
+        self.arm_group.set_pose_target(target, end_effector_link="tool_frame")
         out = self.arm_group.go(wait=True)
         self.arm_group.stop()
         self.arm_group.clear_pose_targets()
@@ -456,6 +965,20 @@ class DoorArmController:
                 waypoints=[grasp_pose],
                 eef_step=0.01,
                 jump_threshold=2
+            )
+            if time.time() - planning_start_time > 60:
+                return 1 # return error, move to next
+        trajectory_completed = self.arm_group.execute(trajectory, wait=True)
+        return 0
+    
+    def run_waypoints(self, pose_list):
+        fraction = 0
+        planning_start_time = time.time()
+        while fraction <= 0.99:
+            trajectory, fraction = self.arm_group.compute_cartesian_path(
+                waypoints=pose_list,
+                eef_step=0.01,
+                jump_threshold=5.0
             )
             if time.time() - planning_start_time > 60:
                 return 1 # return error, move to next
@@ -525,7 +1048,7 @@ class DoorArmController:
         # poses = self.generate_poses_YTRANS(direction=-1)
         # poses = self.generate_poses_YROT()
         # poses = self.generate_poses_ZROT(direction=-1)
-        poses = self.generate_poses_YROT(direction=-1)
+        #poses = self.generate_poses_YROT(direction=-1)
         # print(poses)
 
         for i, pose in enumerate(poses):
@@ -554,7 +1077,7 @@ def main():
     
     dac = DoorArmController("handle")
 
-    dac.pose_list = list(dac.generate_poses_YROT(direction=1))
+    #dac.pose_list = list(dac.generate_poses_YROT(direction=1))
     # dac.pose_list = list(dac.generate_poses_ZROT(direction=-1))
     # dac.run_pose_list()
     # dac.run_once()

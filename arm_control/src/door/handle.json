@@ -3,16 +3,16 @@
         "name": "handle",
         "type": "cylinder",
         "dimensions": {
-            "radius": 0.03,
-            "height": 0.193675
+            "radius": 0.031,
+            "height": 0.35
         },
         "position": {
-            "x": 0.635,
-            "y": 0.0068375,
-            "z": 0.42
+            "x": 0.595,
+            "y": -0.061,
+            "z": 0.347
         },
         "orientation": {
-            "x": 90,
+            "x": 0,
             "y": 0,
             "z": 0
         }
