@@ -104,6 +104,10 @@ void KinovaFingersActionServer::actionCallback(const kinova_msgs::SetFingersPosi
 
         FingerAngles target(goal->fingers);
         arm_comm_.setFingerPositions(target);
+        ROS_INFO("Sent finger goal"); 
+        ROS_DEBUG_STREAM(goal->fingers.finger1);
+        ROS_DEBUG_STREAM(goal->fingers.finger2);
+        ROS_DEBUG_STREAM(goal->fingers.finger3);
 
         // Loop until the action completed, is preempted, or fails in some way.
         // timeout is left to the caller since the timeout may greatly depend on
@@ -111,6 +115,7 @@ void KinovaFingersActionServer::actionCallback(const kinova_msgs::SetFingersPosi
         while (true)
         {
             ros::spinOnce();
+            ROS_INFO("looping");
 
 	    if (arm_comm_.isStopped())
             {

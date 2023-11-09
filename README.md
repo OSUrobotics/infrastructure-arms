@@ -9,14 +9,18 @@ roslaunch kinova_gazebo robot_launch.launch kinova_robotType:=j2s7s300
 roslaunch j2s7s300_moveit_config j2s7s300_gazebo_demo.launch
 
 To launch real robot and Rviz:
-roslaunch kinova_bringup kinova_robot.launch kinova_robotType:=j2s7s300
+<!-- roslaunch kinova_bringup kinova_robot.launch kinova_robotType:=j2s7s300 -->
+roslaunch kinova_bringup kinova_robot.launch kinova_robotType:=j2s7s300 feedback_publish_rate:=0.05
 roslaunch j2s7s300_moveit_config j2s7s300_demo.launch
 
 
 roslaunch kortex_driver kortex_driver.launch gripper:=robotiq_2f_85 ip_address:=192.168.2.200
 
 for recording joint states /my_gen3/base_feedback/joint_state
-roslaunch infrastructure_flexbe_behaviors start_test.launch collect_data:=true name:=grasp_dataset_drawer_y_rot_0 video:=true robot_jointState_topic:=/j2s7s300_driver/out/joint_state
+roslaunch infrastructure_flexbe_behaviors start_test.launch collect_data:=true name:=drawer_dataset_jaco2_palm_grasp_linear_x_1.0 video:=true robot_jointState_topic:=/j2s7s300_driver/out/joint_state
+
+
+
 
 roslaunch kinova_vision kinova_vision_rgbd.launch device:=192.168.2.200
 

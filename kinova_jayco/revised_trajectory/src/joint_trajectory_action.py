@@ -121,7 +121,7 @@ class JointTrajectoryAction(object):
                     # Joint 1 within range
                     velocity_msg.joint1 = 0.0
                     joint_status[0] = True
-                    rospy.loginfo("Joint 1 in range")
+                    #rospy.loginfo("Joint 1 in range")
                 if joint_status[1] == True or (
                     (isclose(direction[1], 1.0) and error[1] < self.goal_contsraint)
                     or (isclose(direction[1], -1.0) and error[1] > -self.goal_contsraint)
@@ -129,7 +129,7 @@ class JointTrajectoryAction(object):
                     # Joint 1 within range
                     velocity_msg.joint2 = 0.0
                     joint_status[1] = True
-                    rospy.loginfo("Joint 2 in range")
+                    #rospy.loginfo("Joint 2 in range")
                 if joint_status[2] == True or (
                     (isclose(direction[2], 1.0) and error[2] < self.goal_contsraint)
                     or (isclose(direction[2], -1.0) and error[2] > -self.goal_contsraint)
@@ -137,7 +137,7 @@ class JointTrajectoryAction(object):
                     # Joint 1 within range
                     velocity_msg.joint3 = 0.0
                     joint_status[2] = True
-                    rospy.loginfo("Joint 3 in range")
+                    #rospy.loginfo("Joint 3 in range")
                 if joint_status[3] == True or (
                     (isclose(direction[3], 1.0) and error[3] < self.goal_contsraint)
                     or (isclose(direction[3], -1.0) and error[3] > -self.goal_contsraint)
@@ -145,7 +145,7 @@ class JointTrajectoryAction(object):
                     # Joint 1 within range
                     velocity_msg.joint4 = 0.0
                     joint_status[3] = True
-                    rospy.loginfo("Joint 4 in range")
+                    #rospy.loginfo("Joint 4 in range")
                 if joint_status[4] == True or (
                     (isclose(direction[4], 1.0) and error[4] < self.goal_contsraint)
                     or (isclose(direction[4], -1.0) and error[4] > -self.goal_contsraint)
@@ -153,7 +153,7 @@ class JointTrajectoryAction(object):
                     # Joint 1 within range
                     velocity_msg.joint5 = 0.0
                     joint_status[4] = True
-                    rospy.loginfo("Joint 5 in range")
+                    #rospy.loginfo("Joint 5 in range")
                 if joint_status[5] == True or (
                     (isclose(direction[5], 1.0) and error[5] < self.goal_contsraint)
                     or (isclose(direction[5], -1.0) and error[5] > -self.goal_contsraint)
@@ -161,7 +161,7 @@ class JointTrajectoryAction(object):
                     # Joint 1 within range
                     velocity_msg.joint6 = 0.0
                     joint_status[5] = True
-                    rospy.loginfo("Joint 6 in range")
+                    #rospy.loginfo("Joint 6 in range")
                 if joint_status[6] == True or (
                     (isclose(direction[6], 1.0) and error[6] < self.goal_contsraint)
                     or (isclose(direction[6], -1.0) and error[6] > -self.goal_contsraint)
@@ -169,7 +169,7 @@ class JointTrajectoryAction(object):
                     # Joint 1 within range
                     velocity_msg.joint7 = 0.0
                     joint_status[6] = True
-                    rospy.loginfo("Joint 7 in range")
+                    #rospy.loginfo("Joint 7 in range")
 
                 # print("velocity msg: ", velocity_msg)
                 # print(joint_status)
@@ -185,6 +185,7 @@ class JointTrajectoryAction(object):
                     break
 
                 # Wait a small period of time before sending next joint velocity command
+                #rospy.loginfo("not in range yet")
                 rate.sleep()
 
         goal = kinova_msgs.msg.ArmJointAnglesGoal()
@@ -199,44 +200,25 @@ class JointTrajectoryAction(object):
         goal.angles.joint6 = self.parsed_positions[self.index - 1][5]
         goal.angles.joint7 = self.parsed_positions[self.index - 1][6]
 
+        print("Goal Before:\n")
+        print(goal.angles)
         # Fix the goal state errors with respect to the current state.
         goal_angles = [attr for attr in dir(goal.angles) if attr.startswith("joint")]
-        for i, joint in enumerate(goal_angles):
+        for joint in goal_angles:
             goal_angle = getattr(goal.angles, joint)
             curr_angle = getattr(self.current_state, joint)
-            # if curr_angle - goal_angle > 350:
             _360_multiplier = round((curr_angle - goal_angle) / 360)
             setattr(goal.angles, joint, goal_angle + _360_multiplier * 360)
-            # elif curr_angle - goal_angle < -350:
-            #     setattr(goal.angles, joint, goal_angle + 360)
+
+        print("Goal After:\n")
+        print(goal.angles)
 
         self.joint_client.send_goal(goal)
         if self.joint_client.wait_for_result(rospy.Duration(2.0)):
             rospy.loginfo(self.joint_client.get_result())
         else:
-
             self.joint_client.cancel_all_goals()
             rospy.logerr("Did not make it to target")
-        
-        # print("goal!")
-        # print(goal)
-        # print("Robot state after")
-        # print(self.current_state)
-        # isgsn = raw_input("enter")
-
-        """
-        goal = kinova_msgs.msg.ArmJointAnglesGoal()
-
-        goal.angles.joint1 = angle_set[0]
-        goal.angles.joint2 = angle_set[1]
-        goal.angles.joint3 = angle_set[2]
-        goal.angles.joint4 = angle_set[3]
-        goal.angles.joint5 = angle_set[4]
-        goal.angles.joint6 = angle_set[5]
-        goal.angles.joint7 = angle_set[6]
-        """
-
-        # print("final error: ", error)
 
         self._as.set_succeeded()
 
@@ -252,6 +234,8 @@ class JointTrajectoryAction(object):
         num_poses = len(trajectory.trajectory.points)
         # rospy.loginfo(len(trajectory.trajectory.points))
         # Loop through the points and add them to our list. Also convert to degrees
+
+        # print(trajectory)
         for i in range(num_poses):
             velocity_msg = KinovaVelocity()
             velocity_msg.joint1 = trajectory.trajectory.points[i].velocities[0] * 180 / pi * 4
@@ -271,6 +255,7 @@ class JointTrajectoryAction(object):
                 trajectory.trajectory.points[i].positions[5] * 180 / pi,
                 trajectory.trajectory.points[i].positions[6] * 180 / pi,
             ]
+            
 
             self.parsed_positions.append(deepcopy(positions))
             self.parsed_trajectory.append(deepcopy(velocity_msg))
@@ -291,14 +276,17 @@ class JointTrajectoryAction(object):
         ]
 
         # Cause for SOME REASON some dumb paths are being made
+        # for i, pos in enumerate(error_out):
+        #     if pos < -330:
+        #         error_out[i] += 360 
+        #     elif pos > 330:
+        #         error_out[i] -= 360
         for i, pos in enumerate(error_out):
-            if pos < -350:
-                error_out[i] += 360 
-            elif pos > 350:
-                error_out[i] -= 360
+            _360_multiplier = round(pos / 360)
+            error_out[i] = pos - _360_multiplier * 360
 
 
-        # print("Pos error", error_out)
+        #print("Pos error", error_out)
         return error_out
 
     def state_cb(self, state):

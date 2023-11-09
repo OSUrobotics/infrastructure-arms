@@ -15,8 +15,8 @@ from infrastructure_msgs.msg import StageAction, StageGoal, StageFeedback, Stage
 from moveit_msgs.srv import GetPlanningScene, ApplyPlanningScene
 from moveit_msgs.msg import DisplayTrajectory
 from geometry_msgs.msg import PoseStamped, Pose
+import std_msgs
 import moveit_commander
-from time import sleep
 import tf.transformations as tfs
 import numpy as np
 import json
@@ -81,7 +81,8 @@ class DrawerArmController:
         # You can easily look it up on rviz under the MotionPlanning tab
         self.move_group = moveit_commander.MoveGroupCommander("arm")
         self.move_gripper = moveit_commander.MoveGroupCommander("gripper")
-        self.move_group.set_num_planning_attempts(3)
+        # self.move_group.set_num_planning_attempts(3)
+        # self.move_group.set_timeout()
 
         rospy.wait_for_service("/apply_planning_scene", 10.0)
         rospy.wait_for_service("/get_planning_scene", 10.0)
@@ -114,7 +115,7 @@ class DrawerArmController:
         # )
         self.target_pose = self.start_pose
         self.pose_list = []
-        self.move_dist_from_pull_release = 0.1
+        self.move_dist_from_pull_release = 0.05
 
         rospy.sleep(3)
         self.joint_angle_rounded = 2
@@ -129,6 +130,7 @@ class DrawerArmController:
         try:
             # Pop new grasp pose from list
             run_pose = self.pose_list.pop(0)
+            # run_pose = self.pose_list[0]
             # Publish metadata
             metadata_msg = ArmTrialMetadata()
             metadata_msg.arm = "Kinova Jaco2"
@@ -144,7 +146,7 @@ class DrawerArmController:
         return
 
 
-    def force_callback(self, force)
+    def force_callback(self, force):
         self.trial_force = force
         return
 
@@ -293,7 +295,7 @@ class DrawerArmController:
             position=self.arm_poses["grasp_pose"]["position"],
             orientation=self.arm_poses["grasp_pose"]["orientation"]
         )
-        pose_list = np.empty(10, dtype=Pose)
+        pose_list = np.empty(num, dtype=Pose)
 
         for i in range(num):
             modified_pose = deepcopy(grasp_pose)
@@ -308,7 +310,7 @@ class DrawerArmController:
             orientation=self.arm_poses["grasp_pose"]["orientation"]
         )
 
-        pose_list = np.empty(10, dtype=Pose)
+        pose_list = np.empty(num, dtype=Pose)
 
         for i in range(num):
             modified_pose = deepcopy(grasp_pose)
@@ -323,7 +325,7 @@ class DrawerArmController:
             orientation=self.arm_poses["grasp_pose"]["orientation"]
         )
 
-        pose_list = np.empty(10, dtype=Pose)
+        pose_list = np.empty(num, dtype=Pose)
 
         for i in range(num):
             modified_pose = deepcopy(grasp_pose)
@@ -333,7 +335,7 @@ class DrawerArmController:
     
 
     def generate_poses_XROT(self, step_size=0.05, num=10, direction=1):
-        pose_list = np.empty(10, dtype=Pose)
+        pose_list = np.empty(num, dtype=Pose)
         for i in range(num):
             modified_pose = deepcopy(self.arm_poses["grasp_pose"])
             modified_pose["orientation"]["x"] += np.degrees(step_size * i * direction)
@@ -345,7 +347,7 @@ class DrawerArmController:
 
 
     def generate_poses_YROT(self, step_size=0.05, num=10, direction=1):
-        pose_list = np.empty(10, dtype=Pose)
+        pose_list = np.empty(num, dtype=Pose)
         for i in range(num):
             modified_pose = deepcopy(self.arm_poses["grasp_pose"])
             modified_pose["orientation"]["y"] += np.degrees(step_size * i * direction)
@@ -357,7 +359,7 @@ class DrawerArmController:
     
 
     def generate_poses_ZROT(self, step_size=0.05, num=10, direction=1):
-        pose_list = np.empty(10, dtype=Pose)
+        pose_list = np.empty(num, dtype=Pose)
         for i in range(num):
             modified_pose = deepcopy(self.arm_poses["grasp_pose"])
             modified_pose["orientation"]["z"] += np.degrees(step_size * i * direction)
@@ -377,30 +379,64 @@ class DrawerArmController:
             curr_pose.pose.orientation.z,
             curr_pose.pose.orientation.w
         ]))
-        orientation[0] = orientation[0] - np.pi/2
+        # Put y rotation into format I did my math in
+        orientation[0] = orientation[0] #+ np.pi
         orientation[1] = orientation[1] - np.pi/2
-        orientation[2] = orientation[2] - np.pi/2
+        orientation[2] = orientation[2] #+ np.pi
         print(orientation)
         # Generate new pose 10cm away from pose in the opposite dir of orientation
         new_pose = deepcopy(curr_pose)
-        new_pose.pose.position.x -= self.move_dist_from_pull_release * np.cos(orientation[1]) * np.sin(orientation[2])
-        new_pose.pose.position.y -= self.move_dist_from_pull_release * np.cos(orientation[1]) * np.cos(orientation[2])
-        new_pose.pose.position.z -= self.move_dist_from_pull_release * np.sin(orientation[1])
+        # if orientation[2] > -np.pi:
+        #     new_pose.pose.position.x += self.move_dist_from_pull_release * np.cos(orientation[1]) * np.sin(orientation[2])
+        # else:
+        new_pose.pose.position.x -= abs(self.move_dist_from_pull_release * np.cos(orientation[1]) * np.cos(orientation[2]))
+        new_pose.pose.position.y += self.move_dist_from_pull_release * np.cos(orientation[1]) * np.sin(orientation[2])
+        new_pose.pose.position.z += self.move_dist_from_pull_release * np.sin(orientation[1])
         print(new_pose)
-        raw_input("Check")
+        # raw_input("Check")
         return new_pose
 
 
+    def generate_list_of_pose(self, pose, num=10):
+        pose_list = np.empty(num, dtype=Pose)
+        for i in range(num):
+            pose_list[i] = pose
+        return pose_list
+
+
     def generate_trajectory_straight_back(self, curr_pose):
+        # end_pose = curr_pose
+        # end_pose.pose.position.x = self.arm_poses["start_pose"]["position"]["x"]
+        # fraction = 0
+        # planning_start_time = time.time()
+        # while fraction < 0.99: # TODO: just call run_arm_to_cartesian_pose
+        #     trajectory, fraction = self.move_group.compute_cartesian_path(
+        #         waypoints=[end_pose.pose],
+        #         eef_step=0.01,
+        #         jump_threshold=2
+        #     )
+        #     if time.time() - planning_start_time > 60:
+        #         return 1 # return error, move to next
+
         end_pose = curr_pose
-        end_pose.pose.position.x = self.arm_poses["start_pose"]["position"]["x"]
+        # if curr_pose.pose.position.x - 0.1 > self.arm_poses["start_pose"]["position"]["x"]:
+        #     end_pose.pose.position.x = curr_pose.pose.position.x - 0.1
+        #     print("Went with modified pose x")
+        # else:
+        #     end_pose.pose.position.x = self.arm_poses["start_pose"]["position"]["x"]
+        #     print("Went with start_pose x")
+        end_pose.pose.position.x = curr_pose.pose.position.x - 0.12
+        print(end_pose.pose.position.x)
         fraction = 0
-        while fraction < 0.99:
+        planning_start_time = time.time()
+        while fraction < 0.99: # TODO: just call run_arm_to_cartesian_pose
             trajectory, fraction = self.move_group.compute_cartesian_path(
                 waypoints=[end_pose.pose],
                 eef_step=0.01,
                 jump_threshold=2
             )
+            if time.time() - planning_start_time > 60:
+                return 1 # return error, move to next
         return trajectory
 
 
@@ -464,6 +500,9 @@ class DrawerArmController:
 
 
     def run_once(self, pose=None):
+        # Add handle constraint
+        self._add_constraints({"obj": self.drawer_env_constraints[self.grasp_obj_type]})
+
         # Make sure gripper is open
         self.move_gripper.set_named_target("Open")
         self.move_gripper.go(wait=True)
@@ -478,8 +517,8 @@ class DrawerArmController:
                 orientation=self.arm_poses["grasp_pose"]["orientation"]
             )
 
-        # Add handle constraint
-        self._add_constraints({"obj": self.drawer_env_constraints[self.grasp_obj_type]})
+        # Remove handle/knob from scene
+        self.scene.remove_world_object(name=self.grasp_obj_type)
 
         # Run to grasping pose
         plan_fail = self.run_arm_to_cartesian_pose(pose)
@@ -490,16 +529,26 @@ class DrawerArmController:
             self.move_gripper.go(wait=False)
             time.sleep(3)
             self.move_gripper.stop()
+
+            # Add handle constraint
+            self._add_constraints({"obj": self.drawer_env_constraints[self.grasp_obj_type]})
             return
 
-        # Remove handle/knob from scene
-        self.scene.remove_world_object(name=self.grasp_obj_type)
+        
 
         # Close gripper
         self.move_gripper.set_named_target("Close")
         self.move_gripper.go(wait=False)
         time.sleep(3)
         self.move_gripper.stop()
+        current_gripper_pose = self.move_gripper.get_current_joint_values()
+        print(current_gripper_pose)
+        while not np.all(np.array(current_gripper_pose) > 1.1):
+            current_gripper_pose = self.move_gripper.get_current_joint_values()
+            print(current_gripper_pose)
+            self.move_gripper.set_named_target("Close")
+            self.move_gripper.go(wait=False)
+            time.sleep(1)
 
 
         # Pull drawer back
@@ -507,17 +556,26 @@ class DrawerArmController:
         self.run_arm_to_pose_straight_back(curr_pose)
 
         # Open gripper
+      
         self.move_gripper.set_named_target("Open")
         self.move_gripper.go(wait=False)
         time.sleep(3)
         self.move_gripper.stop()
+        current_gripper_pose = self.move_gripper.get_current_joint_values()
+        print("Current gripper: ", current_gripper_pose)
+        while not np.all(np.array(current_gripper_pose) < .3):
+            current_gripper_pose = self.move_gripper.get_current_joint_values()
+            print(current_gripper_pose)
+            self.move_gripper.set_named_target("Open")
+            self.move_gripper.go(wait=False)
+            time.sleep(1)
 
-        # Move arm out of grasp object space
-        move_away_pose = self.generate_trajectory_away_from_grasp_obj()
-        plan_fail = self.run_arm_to_cartesian_pose(pose=move_away_pose.pose)
-        if plan_fail:
-            print("Planning for grasp failed. Moving to next pose.")
-            return
+        # # Move arm out of grasp object space
+        # move_away_pose = self.generate_trajectory_away_from_grasp_obj()
+        # plan_fail = self.run_arm_to_cartesian_pose(pose=move_away_pose.pose)
+        # if plan_fail:
+        #     print("Planning for grasp failed. Moving to next pose.")
+        #     return
         return
 
     
@@ -554,10 +612,26 @@ def main():
     # dac = DrawerArmController("knob")
     dac = DrawerArmController("handle")
 
-    dac.pose_list = list(dac.generate_poses_YROT(direction=1))
+    # dac.pose_list = list(dac.generate_poses_YROT(direction=1))
+    # dac.pose_list = list(dac.generate_poses_YROT(step_size=0.07853981633, direction=-1))
     # dac.pose_list = list(dac.generate_poses_ZROT(direction=-1))
+    # dac.pose_list = list(dac.generate_poses_XTRANS(step_size=0.01, direction=-1))
+
+    grasp_type = "palm_grasp_pose_knob"
+    grasp_pose = dac.generate_pose(
+                position=dac.arm_poses[grasp_type]["position"],
+                orientation=dac.arm_poses[grasp_type]["orientation"]
+            )
+    dac.pose_list = list(dac.generate_list_of_pose(pose = grasp_pose))
     # dac.run_pose_list()
-    # dac.run_once()
+    # dac.run_once(pose=grasp_pose)
+    # dac.run_arm_to_start_pose()
+    # dac.target_pose = grasp_pose
+    # dac.scene.remove_world_object(name=dac.grasp_obj_type)
+    # dac.run_arm_to_target_pose()
+
+    # rospy.signal_shutdown("Done.")
+    # raw_input("Done.")
     rospy.spin()
     return
 
